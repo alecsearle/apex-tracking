@@ -2,6 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import assetRoutes from "./routes/assetRoutes";
+import maintenanceRoutes from "./routes/maintenanceRoutes";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.get("/api/health", (req: Request, res: Response) => {
 
 // Asset Routes
 app.use("/api/assets", assetRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 // Start Server
 app.listen(port, () => {
