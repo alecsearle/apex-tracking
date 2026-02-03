@@ -8,6 +8,7 @@ export interface Asset {
   purchaseDate: string;
   nfcTagId?: string;
   maintenanceSchedule?: MaintenanceSchedule[];
+  manualFileName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,7 @@ export interface UpdateAssetDTO {
   serialNumber?: string;
   purchaseDate?: string;
   nfcTagId?: string;
+  manualFileName?: string;
 }
 
 ///// Example Usage /////
@@ -51,6 +53,7 @@ const testAsset: Asset = {
   purchaseDate: "2024-01-15",
   createdAt: "2024-01-15T10:00:00Z",
   updatedAt: "2024-01-15T10:00:00Z",
+  manualFileName: "manual.pdf",
 };
 
 const testCreate: CreateAssetDTO = {

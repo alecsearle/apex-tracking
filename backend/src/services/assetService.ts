@@ -60,4 +60,38 @@ export const assetService = {
     assets.splice(assetIndex, 1);
     return true;
   },
+
+  // Update asset with manual file name
+  updateManual: async (id: string, filename: string): Promise<Asset | null> => {
+    const assetIndex = assets.findIndex((a) => a.id === id);
+
+    if (assetIndex === -1) {
+      return null;
+    }
+
+    assets[assetIndex] = {
+      ...assets[assetIndex],
+      manualFileName: filename,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return assets[assetIndex];
+  },
+
+  // Remove manual from asset
+  removeManual: async (id: string): Promise<Asset | null> => {
+    const assetIndex = assets.findIndex((a) => a.id === id);
+
+    if (assetIndex === -1) {
+      return null;
+    }
+
+    assets[assetIndex] = {
+      ...assets[assetIndex],
+      manualFileName: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return assets[assetIndex];
+  },
 };
