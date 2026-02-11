@@ -9,6 +9,8 @@ export interface Asset {
   nfcTagId?: string;
   maintenanceSchedule?: MaintenanceSchedule[];
   manualFileName?: string;
+  totalUsageHours?: number;
+  lastUsedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

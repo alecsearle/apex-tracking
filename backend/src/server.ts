@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import assetRoutes from "./routes/assetRoutes";
 import maintenanceRoutes from "./routes/maintenanceRoutes";
+import usageRoutes from "./routes/usageRoutes";
 
 dotenv.config();
 
@@ -27,9 +28,10 @@ app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Asset Routes
+// API Routes
 app.use("/api/assets", assetRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/usage", usageRoutes);
 
 // Start Server
 app.listen(port, () => {
