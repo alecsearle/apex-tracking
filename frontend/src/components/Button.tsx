@@ -97,7 +97,7 @@ const Button = ({
     alignSelf: buttonAlignment,
     flexDirection: "row",
     gap: 8,
-    ...(fullWidth && { width: "90%" }),
+    ...(fullWidth && { width: "100%" }),
     ...(halfWidth && { width: "45%" }),
     ...(buttonColors.border && {
       borderWidth: 2,
