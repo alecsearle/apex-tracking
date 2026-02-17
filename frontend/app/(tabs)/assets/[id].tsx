@@ -7,6 +7,7 @@ import { useAsset } from "@/src/hooks/useAsset";
 import { assetService } from "@/src/services/assetService";
 import { useColors } from "@/src/styles/globalColors";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback } from "react";
 import { Alert, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
 
@@ -25,6 +26,11 @@ export default function AssetDetailScreen() {
   if (loading) return <LoadingIndicator />;
   if (error) return <ErrorMessage message={error} onRetry={refetch} />;
   if (!asset) return <ErrorMessage message="Asset not found" />;
+
+  const handleViewManual = async () => {
+    const url = assetService.getManualUrl(id);
+    await WebBrowser.openBrowserAsync(url);
+  };
 
   const handleDelete = () => {
     Alert.alert("Delete Asset", "Are you sure? This cannot be undone.", [
@@ -121,6 +127,37 @@ export default function AssetDetailScreen() {
     color: colors.textPrimary,
   };
 
+  const manualCard: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  };
+
+  const manualIconContainer: ViewStyle = {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.statusActiveBg,
+    justifyContent: "center",
+    alignItems: "center",
+  };
+
+  const manualInfo: ViewStyle = {
+    flex: 1,
+  };
+
+  const manualTitle: TextStyle = {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  };
+
+  const manualSubtitle: TextStyle = {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  };
+
   const actionsStyle: ViewStyle = {
     marginTop: 28,
     gap: 10,
@@ -182,6 +219,50 @@ export default function AssetDetailScreen() {
             </Text>
           </View>
         </View>
+      </Card>
+
+      <Text style={sectionTitle}>Maintenance Manual</Text>
+      <Card variant="elevated" padding="medium" onPress={asset.manualFileName ? handleViewManual : undefined}>
+        {asset.manualFileName ? (
+          <View style={manualCard}>
+            <View style={manualIconContainer}>
+              <Icon
+                name="description"
+                iosName="doc.fill"
+                androidName="description"
+                size={22}
+                color={colors.statusActiveText}
+              />
+            </View>
+            <View style={manualInfo}>
+              <Text style={manualTitle}>PDF Manual</Text>
+              <Text style={manualSubtitle}>Tap to view</Text>
+            </View>
+            <Icon
+              name="open-in-new"
+              iosName="arrow.up.right.square"
+              androidName="open-in-new"
+              size={20}
+              color={colors.brandPrimary}
+            />
+          </View>
+        ) : (
+          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <Icon
+              name="description"
+              iosName="doc"
+              androidName="description"
+              size={28}
+              color={colors.textMuted}
+            />
+            <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 8 }}>
+              No manual attached
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
+              Add one via Edit Asset
+            </Text>
+          </View>
+        )}
       </Card>
 
       <View style={actionsStyle}>
