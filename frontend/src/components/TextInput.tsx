@@ -2,8 +2,8 @@ import { useColors } from "@/src/styles/globalColors";
 import React, { useState } from "react";
 import {
   KeyboardTypeOptions,
-  Text,
   TextInput as RNTextInput,
+  Text,
   TextStyle,
   View,
   ViewStyle,
@@ -17,6 +17,7 @@ interface TextInputProps {
   error?: string;
   multiline?: boolean;
   keyboardType?: KeyboardTypeOptions;
+  secureTextEntry?: boolean;
 }
 
 const TextInput = ({
@@ -27,6 +28,7 @@ const TextInput = ({
   error,
   multiline = false,
   keyboardType,
+  secureTextEntry = false,
 }: TextInputProps) => {
   const colors = useColors();
   const [focused, setFocused] = useState(false);
@@ -80,6 +82,7 @@ const TextInput = ({
         placeholderTextColor={colors.textMuted}
         multiline={multiline}
         keyboardType={keyboardType}
+        secureTextEntry={secureTextEntry}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
       />

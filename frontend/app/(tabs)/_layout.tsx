@@ -1,9 +1,14 @@
 import Icon from "@/src/components/Icon";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 
 export default function TabsLayout() {
+  const { session, loading } = useAuth();
   const colors = useColors();
+
+  if (loading) return null;
+  if (!session) return <Redirect href="/(auth)/login" />;
 
   return (
     <Tabs
@@ -40,7 +45,13 @@ export default function TabsLayout() {
           title: "Assets",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <Icon name="build" iosName="wrench.fill" androidName="build" color={color} size={size} />
+            <Icon
+              name="build"
+              iosName="wrench.fill"
+              androidName="build"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -49,7 +60,13 @@ export default function TabsLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="settings" iosName="gearshape.fill" androidName="settings" color={color} size={size} />
+            <Icon
+              name="settings"
+              iosName="gearshape.fill"
+              androidName="settings"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />

@@ -1,3 +1,4 @@
+import SignOutButton from "@/src/components/authentication/SignOutButton";
 import { Text, View } from "react-native";
 
 export default function Settings() {
@@ -10,6 +11,7 @@ export default function Settings() {
       }}
     >
       <Text>Settings</Text>
+      <SignOutButton />
     </View>
   );
 }
