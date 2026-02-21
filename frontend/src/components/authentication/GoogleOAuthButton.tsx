@@ -1,36 +1,83 @@
 import { supabase } from "@/lib/supabase";
-import { useColors } from "@/src/styles/globalColors";
-import { makeRedirectUri } from "expo-auth-session";
-import * as QueryParams from "expo-auth-session/build/QueryParams";
-import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable } from "react-native";
+
+import { expo } from "@/app.json";
+import { Text } from "@react-navigation/elements";
+import { Image } from "expo-image";
+import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const createSessionFromUrl = async (url: string) => {
-  const { params, errorCode } = QueryParams.getQueryParams(url);
+export default function GoogleSignInButton() {
+  function extractParamsFromUrl(url: string) {
+    const parsedUrl = new URL(url);
+    const hash = parsedUrl.hash.substring(1); // Remove the leading '#'
+    const params = new URLSearchParams(hash);
 
-  if (errorCode) throw new Error(errorCode);
+    return {
+      access_token: params.get("access_token"),
+      expires_in: parseInt(params.get("expires_in") || "0"),
+      refresh_token: params.get("refresh_token"),
+      token_type: params.get("token_type"),
+      provider_token: params.get("provider_token"),
+      code: params.get("code"),
+    };
+  }
 
-  const { access_token, refresh_token } = params;
+  async function onSignInButtonPress() {
+    console.debug("onSignInButtonPress - start");
+    const res = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `https://rlpgjvpwvgkfoxiijnoe.supabase.co/auth/v1/callback`,
+        queryParams: { prompt: "consent" },
+        skipBrowserRedirect: true,
+      },
+    });
 
-  if (!access_token) return;
+    const googleOAuthUrl = res.data.url;
 
-  const { data, error } = await supabase.auth.setSession({
-    access_token,
-    refresh_token,
-  });
+    if (!googleOAuthUrl) {
+      console.error("no oauth url found!");
+      return;
+    }
 
-  if (error) throw error;
-  return data.session;
-};
+    console.debug("OAuth URL:", googleOAuthUrl);
+    const result = await WebBrowser.openAuthSessionAsync(
+      googleOAuthUrl,
+      `${expo.scheme}://google-auth`,
+      { showInRecents: true },
+    ).catch((err) => {
+      console.error("onSignInButtonPress - openAuthSessionAsync - error", { err });
+      console.log(err);
+    });
 
-export default function GoogleOAuthButton() {
-  const router = useRouter();
-  const colors = useColors();
+    console.debug("onSignInButtonPress - openAuthSessionAsync - result", { result });
 
+    if (result && result.type === "success") {
+      console.debug("onSignInButtonPress - openAuthSessionAsync - success");
+      const params = extractParamsFromUrl(result.url);
+      console.debug("onSignInButtonPress - openAuthSessionAsync - success", { params });
+
+      if (params.access_token && params.refresh_token) {
+        console.debug("onSignInButtonPress - setSession");
+        const { data, error } = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        console.debug("onSignInButtonPress - setSession - success", { data, error });
+        return;
+      } else {
+        console.error("onSignInButtonPress - setSession - failed");
+        // sign in/up failed
+      }
+    } else {
+      console.error("onSignInButtonPress - openAuthSessionAsync - failed");
+    }
+  }
+
+  // to warm up the browser
   useEffect(() => {
     WebBrowser.warmUpAsync();
 
@@ -39,65 +86,40 @@ export default function GoogleOAuthButton() {
     };
   }, []);
 
-  const redirectTo = makeRedirectUri(); // no arguments
-
-  async function signInWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo, // pass it here
-        skipBrowserRedirect: true,
-      },
-    });
-    if (error) throw error;
-    const res = await WebBrowser.openAuthSessionAsync(data?.url ?? "", redirectTo);
-    if (res.type === "success") {
-      await createSessionFromUrl(res.url);
-    }
-  }
-
   return (
     <Pressable
-      style={[
-        styles.button,
-        {
-          backgroundColor: colors.backgroundCard,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={signInWithGoogle}
+      onPress={onSignInButtonPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#ffffff",
+        borderWidth: 1,
+        borderColor: "#dbdbdb",
+        borderRadius: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2, // For Android shadow
+      }}
     >
-      <View style={styles.iconContainer}>
-        <Text style={[styles.icon, { color: colors.textPrimary }]}>G</Text>
-      </View>
-      <Text style={[styles.text, { color: colors.textPrimary }]}>Continue with Google</Text>
+      <Image
+        source={{ uri: "https://developers.google.com/identity/images/g-logo.png" }}
+        style={{ width: 24, height: 24, marginRight: 10 }}
+      />
+      <Text
+        style={{
+          fontSize: 16,
+          color: "#757575",
+          fontFamily: "Roboto-Regular", // Assuming Roboto is available; install via expo-google-fonts or similar if needed
+          fontWeight: "500",
+        }}
+      >
+        Sign in with Google
+      </Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  iconContainer: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  icon: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
