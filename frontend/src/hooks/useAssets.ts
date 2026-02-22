@@ -1,28 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { MOCK_ASSETS } from "@/src/mocks/mockData";
 import { Asset } from "@/src/types/asset";
-import { assetService } from "@/src/services/assetService";
+import { useCallback, useState } from "react";
 
 export function useAssets() {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [assets] = useState<Asset[]>(MOCK_ASSETS);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
-  const fetchAssets = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await assetService.getAll();
-      setAssets(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load assets");
-    } finally {
-      setLoading(false);
-    }
+  const refetch = useCallback(() => {
+    // No-op for mock data
   }, []);
 
-  useEffect(() => {
-    fetchAssets();
-  }, [fetchAssets]);
-
-  return { assets, loading, error, refetch: fetchAssets };
+  return { assets, loading, error, refetch };
 }

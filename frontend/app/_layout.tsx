@@ -1,7 +1,8 @@
+import { AuthProvider } from "@/src/contexts/AuthContext";
 import { useAuth } from "@/src/hooks/useAuth";
 import { Stack } from "expo-router";
 
-export default function RootLayout() {
+function RootNavigator() {
   const { session, loading } = useAuth();
 
   if (loading) return null;
@@ -11,5 +12,13 @@ export default function RootLayout() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
   );
 }

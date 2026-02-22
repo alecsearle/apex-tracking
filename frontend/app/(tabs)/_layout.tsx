@@ -56,6 +56,38 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="maintenance"
+        options={{
+          title: "Maintenance",
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Icon
+              name="handyman"
+              iosName="wrench.and.screwdriver.fill"
+              androidName="handyman"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="sops"
+        options={{
+          title: "SOPs",
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Icon
+              name="menu-book"
+              iosName="doc.text.fill"
+              androidName="menu-book"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

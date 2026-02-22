@@ -1,19 +1,16 @@
 import AssetForm, { SelectedFile } from "@/src/components/AssetForm";
-import { assetService } from "@/src/services/assetService";
 import { CreateAssetDTO } from "@/src/types/asset";
 import { useRouter } from "expo-router";
+import { Alert } from "react-native";
 
 export default function NewAssetScreen() {
   const router = useRouter();
 
   const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile) => {
-    const asset = await assetService.create(data);
-
-    if (file) {
-      await assetService.uploadManual(asset.id, file.uri, file.name);
-    }
-
-    router.back();
+    // Mock: just show success and go back
+    Alert.alert("Asset Created", `"${data.name}" has been added.`, [
+      { text: "OK", onPress: () => router.back() },
+    ]);
   };
 
   return <AssetForm onSubmit={handleSubmit} submitLabel="Add Asset" />;

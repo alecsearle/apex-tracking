@@ -1,7 +1,7 @@
 import { useColors } from "@/src/styles/globalColors";
 import { Stack } from "expo-router";
 
-export default function AssetsLayout() {
+export default function SOPsLayout() {
   const colors = useColors();
 
   return (
@@ -21,10 +21,9 @@ export default function AssetsLayout() {
         headerBackTitle: "",
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Assets" }} />
-      <Stack.Screen name="[id]" options={{ title: "Asset Details" }} />
-      <Stack.Screen name="new" options={{ title: "Add Asset" }} />
-      <Stack.Screen name="edit/[id]" options={{ title: "Edit Asset" }} />
+      <Stack.Screen name="index" options={{ title: "SOPs" }} />
+      <Stack.Screen name="[id]" options={{ title: "SOP Detail" }} />
+      <Stack.Screen name="new" options={{ title: "New SOP" }} />
     </Stack>
   );
 }

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import Button from "@/src/components/Button";
 import TextInput from "@/src/components/TextInput";
 import GoogleOAuthButton from "@/src/components/authentication/GoogleOAuthButton";
+import { useAuthContext } from "@/src/contexts/AuthContext";
 import { useColors } from "@/src/styles/globalColors";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const colors = useColors();
+  const { devLogin } = useAuthContext();
 
   async function login() {
     setLoading(true);
@@ -79,6 +81,15 @@ export default function Login() {
             <Text style={[styles.link, { color: colors.brandPrimary }]}>Create one</Text>
           </TouchableOpacity>
         </View>
+
+        {__DEV__ && (
+          <View style={styles.devSection}>
+            <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+            <Button variant="ghost" onPress={devLogin} fullWidth>
+              Dev Login (Skip Auth)
+            </Button>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -128,5 +139,10 @@ const styles = StyleSheet.create({
   link: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  devSection: {
+    marginTop: 32,
+    alignItems: "center",
+    gap: 12,
   },
 });
