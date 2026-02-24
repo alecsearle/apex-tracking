@@ -1,4 +1,4 @@
-export type SessionStatus = "active" | "completed";
+export type SessionStatus = "active" | "paused" | "completed";
 
 export interface UsageSession {
   id: string;
@@ -7,7 +7,10 @@ export interface UsageSession {
   endedBy?: string;
   startedAt: string;
   endedAt?: string;
+  pausedAt?: string;
+  totalPausedMs?: number;
   notes?: string;
+  jobSiteName?: string;
   status: SessionStatus;
   // Enriched fields from joins
   assetName: string;

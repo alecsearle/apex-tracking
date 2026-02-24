@@ -583,7 +583,7 @@ Before leaving the depot each morning:
 
 // ── Reports ────────────────────────────────────────────
 
-export const MOCK_REPORTS: MaintenanceReport[] = [
+export let MOCK_REPORTS: MaintenanceReport[] = [
   {
     id: "report-001",
     assetId: "asset-004",
@@ -644,29 +644,63 @@ export function mockStartSession(
   return newSession;
 }
 
+export function mockPauseSession(sessionId: string): void {
+  MOCK_SESSIONS = MOCK_SESSIONS.map((s) => {
+    if (s.id !== sessionId || s.status !== "active") return s;
+    return {
+      ...s,
+      status: "paused" as const,
+      pausedAt: new Date().toISOString(),
+    };
+  });
+}
+
+export function mockResumeSession(sessionId: string): void {
+  const now = Date.now();
+  MOCK_SESSIONS = MOCK_SESSIONS.map((s) => {
+    if (s.id !== sessionId || s.status !== "paused") return s;
+    const pauseDuration = s.pausedAt ? now - new Date(s.pausedAt).getTime() : 0;
+    return {
+      ...s,
+      status: "active" as const,
+      pausedAt: undefined,
+      totalPausedMs: (s.totalPausedMs ?? 0) + pauseDuration,
+    };
+  });
+}
+
 export function mockEndSession(
   sessionId: string,
   endedBy: string,
   endedByName: string,
+  options?: { notes?: string; jobSiteName?: string },
 ): void {
   const now = new Date();
   MOCK_SESSIONS = MOCK_SESSIONS.map((s) => {
     if (s.id !== sessionId) return s;
-    const startTime = new Date(s.startedAt).getTime();
-    const durationHours = Math.round(((now.getTime() - startTime) / (1000 * 60 * 60)) * 10) / 10;
+    // If ending while paused, accumulate the final pause duration
+    let totalPausedMs = s.totalPausedMs ?? 0;
+    if (s.status === "paused" && s.pausedAt) {
+      totalPausedMs += now.getTime() - new Date(s.pausedAt).getTime();
+    }
     return {
       ...s,
       endedBy,
       endedByName,
       endedAt: now.toISOString(),
       status: "completed" as const,
+      totalPausedMs,
+      pausedAt: undefined,
+      notes: options?.notes || s.notes,
+      jobSiteName: options?.jobSiteName,
     };
   });
 
   const session = MOCK_SESSIONS.find((s) => s.id === sessionId);
   if (session) {
     const startTime = new Date(session.startedAt).getTime();
-    const durationHours = Math.round(((now.getTime() - startTime) / (1000 * 60 * 60)) * 10) / 10;
+    const totalMs = now.getTime() - startTime - (session.totalPausedMs ?? 0);
+    const durationHours = Math.round((totalMs / (1000 * 60 * 60)) * 10) / 10;
     MOCK_ASSETS = MOCK_ASSETS.map((a) =>
       a.id === session.assetId
         ? {
@@ -680,6 +714,37 @@ export function mockEndSession(
   }
 }
 
+let reportCounter = 0;
+
+export function mockCreateReport(params: {
+  assetId: string;
+  sessionId?: string;
+  title: string;
+  description: string;
+  severity: import("@/src/types/report").ReportSeverity;
+}): MaintenanceReport {
+  reportCounter++;
+  const asset = MOCK_ASSETS.find((a) => a.id === params.assetId);
+  const newReport: MaintenanceReport = {
+    id: `report-new-${reportCounter}`,
+    assetId: params.assetId,
+    sessionId: params.sessionId,
+    businessId: "biz-001",
+    reportedBy: CURRENT_USER.id,
+    title: params.title,
+    description: params.description,
+    severity: params.severity,
+    status: "open",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    assetName: asset?.name ?? "Unknown",
+    reportedByName: CURRENT_USER.fullName,
+    photos: [],
+  };
+  MOCK_REPORTS.push(newReport);
+  return newReport;
+}
+
 export function mockDeleteAsset(assetId: string): void {
   MOCK_ASSETS = MOCK_ASSETS.filter((a) => a.id !== assetId);
   MOCK_SESSIONS = MOCK_SESSIONS.filter((s) => s.assetId !== assetId);
@@ -688,7 +753,7 @@ export function mockDeleteAsset(assetId: string): void {
 // ── Helper Functions ───────────────────────────────────
 
 export function getActiveSessions(): UsageSession[] {
-  return MOCK_SESSIONS.filter((s) => s.status === "active");
+  return MOCK_SESSIONS.filter((s) => s.status === "active" || s.status === "paused");
 }
 
 export function getSessionsForAsset(assetId: string): UsageSession[] {

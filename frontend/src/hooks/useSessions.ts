@@ -3,8 +3,9 @@ import {
   getActiveSessions,
   getSessionsForAsset,
   mockEndSession,
+  mockPauseSession,
+  mockResumeSession,
   mockStartSession,
-  MOCK_SESSIONS,
 } from "@/src/mocks/mockData";
 import { UsageSession } from "@/src/types/session";
 import { useCallback, useState } from "react";
@@ -35,9 +36,9 @@ export function useSessions(assetId?: string) {
   );
 
   const endSession = useCallback(
-    (sessionId: string) => {
+    (sessionId: string, options?: { notes?: string; jobSiteName?: string }) => {
       setLoading(true);
-      mockEndSession(sessionId, CURRENT_USER.id, CURRENT_USER.fullName);
+      mockEndSession(sessionId, CURRENT_USER.id, CURRENT_USER.fullName, options);
       setSessions(
         assetId ? [...getSessionsForAsset(assetId)] : [...getActiveSessions()],
       );
@@ -46,5 +47,29 @@ export function useSessions(assetId?: string) {
     [assetId],
   );
 
-  return { sessions, loading, error, refetch, startSession, endSession };
+  const pauseSession = useCallback(
+    (sessionId: string) => {
+      setLoading(true);
+      mockPauseSession(sessionId);
+      setSessions(
+        assetId ? [...getSessionsForAsset(assetId)] : [...getActiveSessions()],
+      );
+      setLoading(false);
+    },
+    [assetId],
+  );
+
+  const resumeSession = useCallback(
+    (sessionId: string) => {
+      setLoading(true);
+      mockResumeSession(sessionId);
+      setSessions(
+        assetId ? [...getSessionsForAsset(assetId)] : [...getActiveSessions()],
+      );
+      setLoading(false);
+    },
+    [assetId],
+  );
+
+  return { sessions, loading, error, refetch, startSession, endSession, pauseSession, resumeSession };
 }
