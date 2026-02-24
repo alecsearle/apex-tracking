@@ -75,7 +75,7 @@ export const MOCK_MEMBERSHIPS: Membership[] = [
 
 // ── Assets ─────────────────────────────────────────────
 
-export const MOCK_ASSETS: Asset[] = [
+export let MOCK_ASSETS: Asset[] = [
   {
     id: "asset-001",
     businessId: "biz-001",
@@ -86,7 +86,7 @@ export const MOCK_ASSETS: Asset[] = [
     purchaseDate: "2025-03-15",
     status: "in_use",
     totalUsageHours: 142.5,
-    manualUrl: "https://example.com/manuals/ms261.pdf",
+    manualUrl: "local:sample-manual",
     createdBy: "user-001",
     createdAt: "2025-03-15T10:00:00Z",
     updatedAt: "2026-02-20T08:30:00Z",
@@ -158,7 +158,7 @@ export const MOCK_ASSETS: Asset[] = [
     nfcTagId: "NFC-006",
     status: "available",
     totalUsageHours: 220.0,
-    manualUrl: "https://example.com/manuals/kx040.pdf",
+    manualUrl: "local:sample-manual",
     createdBy: "user-001",
     createdAt: "2025-08-15T10:00:00Z",
     updatedAt: "2026-02-20T16:00:00Z",
@@ -167,7 +167,7 @@ export const MOCK_ASSETS: Asset[] = [
 
 // ── Active Sessions ────────────────────────────────────
 
-export const MOCK_SESSIONS: UsageSession[] = [
+export let MOCK_SESSIONS: UsageSession[] = [
   {
     id: "session-001",
     assetId: "asset-001",
@@ -616,6 +616,74 @@ export const MOCK_REPORTS: MaintenanceReport[] = [
     photos: [],
   },
 ];
+
+// ── Mutation Functions ────────────────────────────────
+
+let sessionCounter = 0;
+
+export function mockStartSession(
+  assetId: string,
+  startedBy: string,
+  startedByName: string,
+  assetName: string,
+): UsageSession {
+  sessionCounter++;
+  const newSession: UsageSession = {
+    id: `session-new-${sessionCounter}`,
+    assetId,
+    startedBy,
+    startedAt: new Date().toISOString(),
+    status: "active",
+    assetName,
+    startedByName,
+  };
+  MOCK_SESSIONS = [newSession, ...MOCK_SESSIONS];
+  MOCK_ASSETS = MOCK_ASSETS.map((a) =>
+    a.id === assetId ? { ...a, status: "in_use" as const, updatedAt: new Date().toISOString() } : a,
+  );
+  return newSession;
+}
+
+export function mockEndSession(
+  sessionId: string,
+  endedBy: string,
+  endedByName: string,
+): void {
+  const now = new Date();
+  MOCK_SESSIONS = MOCK_SESSIONS.map((s) => {
+    if (s.id !== sessionId) return s;
+    const startTime = new Date(s.startedAt).getTime();
+    const durationHours = Math.round(((now.getTime() - startTime) / (1000 * 60 * 60)) * 10) / 10;
+    return {
+      ...s,
+      endedBy,
+      endedByName,
+      endedAt: now.toISOString(),
+      status: "completed" as const,
+    };
+  });
+
+  const session = MOCK_SESSIONS.find((s) => s.id === sessionId);
+  if (session) {
+    const startTime = new Date(session.startedAt).getTime();
+    const durationHours = Math.round(((now.getTime() - startTime) / (1000 * 60 * 60)) * 10) / 10;
+    MOCK_ASSETS = MOCK_ASSETS.map((a) =>
+      a.id === session.assetId
+        ? {
+            ...a,
+            status: "available" as const,
+            totalUsageHours: Math.round((a.totalUsageHours + durationHours) * 10) / 10,
+            updatedAt: now.toISOString(),
+          }
+        : a,
+    );
+  }
+}
+
+export function mockDeleteAsset(assetId: string): void {
+  MOCK_ASSETS = MOCK_ASSETS.filter((a) => a.id !== assetId);
+  MOCK_SESSIONS = MOCK_SESSIONS.filter((s) => s.assetId !== assetId);
+}
 
 // ── Helper Functions ───────────────────────────────────
 

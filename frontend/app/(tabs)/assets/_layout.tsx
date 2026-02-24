@@ -25,6 +25,10 @@ export default function AssetsLayout() {
       <Stack.Screen name="[id]" options={{ title: "Asset Details" }} />
       <Stack.Screen name="new" options={{ title: "Add Asset" }} />
       <Stack.Screen name="edit/[id]" options={{ title: "Edit Asset" }} />
+      <Stack.Screen name="sop/[id]" options={{ title: "SOP Details" }} />
+      <Stack.Screen name="maintenance/[id]" options={{ title: "Schedule Details" }} />
+      <Stack.Screen name="maintenance/complete/[id]" options={{ title: "Complete Maintenance" }} />
+      <Stack.Screen name="manual/[id]" options={{ title: "PDF Manual" }} />
     </Stack>
   );
 }
