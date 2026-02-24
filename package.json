@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@invertase/react-native-apple-authentication": "^2.5.1",
     "multer": "^2.0.2"
   },
   "devDependencies": {

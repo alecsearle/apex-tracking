@@ -1,10 +1,21 @@
 import Card from "@/src/components/Card";
+import FilterChips from "@/src/components/FilterChips";
 import Icon from "@/src/components/Icon";
+import SearchBar from "@/src/components/SearchBar";
 import { useSOPs } from "@/src/hooks/useSOPs";
 import { useColors } from "@/src/styles/globalColors";
 import { Sop } from "@/src/types/sop";
 import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
 import { ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+
+type ScopeFilter = "all" | "business_wide" | "per_asset";
+
+const filterOptions: { label: string; value: ScopeFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Business-Wide", value: "business_wide" },
+  { label: "Per Asset", value: "per_asset" },
+];
 
 function SourceBadge({ source }: { source: Sop["source"] }) {
   const colors = useColors();
@@ -48,6 +59,23 @@ export default function SOPsScreen() {
   const colors = useColors();
   const router = useRouter();
   const { sops } = useSOPs();
+  const [search, setSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
+
+  const isFiltering = search.trim().length > 0 || scopeFilter !== "all";
+
+  const filteredSops = useMemo(() => {
+    const query = search.toLowerCase().trim();
+    return sops.filter((s) => {
+      if (scopeFilter === "business_wide" && s.assetId) return false;
+      if (scopeFilter === "per_asset" && !s.assetId) return false;
+      if (query) {
+        const haystack = `${s.title} ${s.assetName ?? ""}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [sops, search, scopeFilter]);
 
   const businessWide = sops.filter((s) => !s.assetId);
   const perAsset = sops.filter((s) => !!s.assetId);
@@ -60,29 +88,54 @@ export default function SOPsScreen() {
   };
   const sectionStyle: ViewStyle = { marginBottom: 24 };
 
+  const navigateTo = (sop: Sop) => router.push(`/sops/${sop.id}`);
+
   return (
     <View style={containerStyle}>
       <ScrollView contentContainerStyle={contentStyle}>
-        {businessWide.length > 0 && (
-          <View style={sectionStyle}>
-            <Text style={sectionTitle}>Business-Wide</Text>
-            <View style={{ gap: 10 }}>
-              {businessWide.map((sop) => (
-                <SOPCard key={sop.id} sop={sop} onPress={() => router.push(`/sops/${sop.id}`)} />
-              ))}
-            </View>
-          </View>
-        )}
+        <View style={{ gap: 12, marginBottom: 16 }}>
+          <SearchBar
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search SOPs…"
+          />
+          <FilterChips
+            options={filterOptions}
+            selected={scopeFilter}
+            onSelect={setScopeFilter}
+          />
+        </View>
 
-        {perAsset.length > 0 && (
-          <View style={sectionStyle}>
-            <Text style={sectionTitle}>Per Asset</Text>
-            <View style={{ gap: 10 }}>
-              {perAsset.map((sop) => (
-                <SOPCard key={sop.id} sop={sop} onPress={() => router.push(`/sops/${sop.id}`)} />
-              ))}
-            </View>
+        {isFiltering ? (
+          <View style={{ gap: 10 }}>
+            {filteredSops.map((sop) => (
+              <SOPCard key={sop.id} sop={sop} onPress={() => navigateTo(sop)} />
+            ))}
           </View>
+        ) : (
+          <>
+            {businessWide.length > 0 && (
+              <View style={sectionStyle}>
+                <Text style={sectionTitle}>Business-Wide</Text>
+                <View style={{ gap: 10 }}>
+                  {businessWide.map((sop) => (
+                    <SOPCard key={sop.id} sop={sop} onPress={() => navigateTo(sop)} />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {perAsset.length > 0 && (
+              <View style={sectionStyle}>
+                <Text style={sectionTitle}>Per Asset</Text>
+                <View style={{ gap: 10 }}>
+                  {perAsset.map((sop) => (
+                    <SOPCard key={sop.id} sop={sop} onPress={() => navigateTo(sop)} />
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
