@@ -5,7 +5,10 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 interface AuthContextValue {
   session: Session | null;
   loading: boolean;
+  needsOnboarding: boolean;
   devLogin: () => void;
+  devOnboardingLogin: () => void;
+  completeOnboarding: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -30,6 +33,7 @@ const MOCK_SESSION: Session = {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,12 +52,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function devLogin() {
     if (__DEV__) {
+      setNeedsOnboarding(false);
       setSession(MOCK_SESSION);
     }
   }
 
+  function devOnboardingLogin() {
+    if (__DEV__) {
+      setNeedsOnboarding(true);
+      setSession(MOCK_SESSION);
+    }
+  }
+
+  function completeOnboarding() {
+    setNeedsOnboarding(false);
+  }
+
   return (
-    <AuthContext.Provider value={{ session, loading, devLogin }}>
+    <AuthContext.Provider
+      value={{ session, loading, needsOnboarding, devLogin, devOnboardingLogin, completeOnboarding }}
+    >
       {children}
     </AuthContext.Provider>
   );

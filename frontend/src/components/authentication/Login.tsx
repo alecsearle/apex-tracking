@@ -22,7 +22,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const colors = useColors();
-  const { devLogin } = useAuthContext();
+  const { devLogin, devOnboardingLogin } = useAuthContext();
 
   async function login() {
     setLoading(true);
@@ -87,6 +87,9 @@ export default function Login() {
             <View style={[styles.divider, { backgroundColor: colors.divider }]} />
             <Button variant="ghost" onPress={devLogin} fullWidth>
               Dev Login (Skip Auth)
+            </Button>
+            <Button variant="ghost" onPress={() => { devOnboardingLogin(); router.replace("/(auth)/onboarding"); }} fullWidth>
+              Dev Login (Onboarding)
             </Button>
           </View>
         )}

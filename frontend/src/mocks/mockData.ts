@@ -750,6 +750,55 @@ export function mockDeleteAsset(assetId: string): void {
   MOCK_SESSIONS = MOCK_SESSIONS.filter((s) => s.assetId !== assetId);
 }
 
+// ── Onboarding Mock Functions ─────────────────────────
+
+let businessCounter = 0;
+
+function generateBusinessCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `APEX-${code}`;
+}
+
+export function mockCreateBusiness(name: string): { business: Business; membership: Membership } {
+  businessCounter++;
+  const businessId = `biz-new-${businessCounter}`;
+  const business: Business = {
+    id: businessId,
+    name,
+    businessCode: generateBusinessCode(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const membership: Membership = {
+    id: `mem-new-${businessCounter}`,
+    userId: CURRENT_USER.id,
+    businessId,
+    role: "owner",
+    joinedAt: new Date().toISOString(),
+    user: { id: CURRENT_USER.id, fullName: CURRENT_USER.fullName, email: CURRENT_USER.email },
+  };
+  return { business, membership };
+}
+
+export function mockJoinBusiness(code: string): { success: boolean; error?: string; membership?: Membership } {
+  if (code.toUpperCase() !== MOCK_BUSINESS.businessCode) {
+    return { success: false, error: "Invalid business code. Please check the code and try again." };
+  }
+  const membership: Membership = {
+    id: `mem-join-${Date.now()}`,
+    userId: CURRENT_USER.id,
+    businessId: MOCK_BUSINESS.id,
+    role: "employee",
+    joinedAt: new Date().toISOString(),
+    user: { id: CURRENT_USER.id, fullName: CURRENT_USER.fullName, email: CURRENT_USER.email },
+  };
+  return { success: true, membership };
+}
+
 // ── Helper Functions ───────────────────────────────────
 
 export function getActiveSessions(): UsageSession[] {
