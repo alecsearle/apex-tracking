@@ -9,7 +9,7 @@ import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
 import { useNfc } from "@/src/hooks/useNfc";
 import { useSOPs } from "@/src/hooks/useSOPs";
 import { useSessions } from "@/src/hooks/useSessions";
-import { mockCreateReport } from "@/src/mocks/mockData";
+import { mockCreateReport, mockGetAssetByNfcTagId, mockUpdateAsset } from "@/src/mocks/mockData";
 import { useColors } from "@/src/styles/globalColors";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
 import { ReportSeverity } from "@/src/types/report";
@@ -73,7 +73,7 @@ export default function AssetDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { asset, loading, error, refetch: refetchAsset, updateAsset, deleteAsset } = useAsset(id);
-  const { readTag, isSupported: nfcSupported } = useNfc();
+  const { scanAndWriteTag, writeTag, isSupported: nfcSupported } = useNfc();
   const {
     sessions,
     refetch: refetchSessions,
@@ -173,12 +173,51 @@ export default function AssetDetailScreen() {
 
   const handleLinkNfcTag = async () => {
     try {
-      const tag = await readTag();
-      if (tag?.id) {
-        updateAsset({ nfcTagId: tag.id });
-        refetchAsset();
-        Alert.alert("Success", `NFC tag linked to ${asset.name}`);
+      const thisAssetUri = `apextracking://assets/${asset.id}`;
+      const result = await scanAndWriteTag(thisAssetUri);
+
+      if (!result) {
+        Alert.alert("Error", "Failed to scan NFC tag. Make sure the tag is nearby.");
+        return;
       }
+
+      const { tagId, existingUri, written } = result;
+
+      if (written) {
+        updateAsset({ nfcTagId: tagId });
+        refetchAsset();
+        Alert.alert("Success", `NFC tag linked to ${asset.name} and deep link written`);
+        return;
+      }
+
+      // Tag has a different URI — ask user to confirm overwrite
+      const oldAsset = mockGetAssetByNfcTagId(tagId);
+      const oldAssetName = oldAsset?.name ?? "another asset";
+
+      Alert.alert(
+        "Tag Already Linked",
+        `This tag is currently linked to "${oldAssetName}". Replace the link?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Replace",
+            style: "destructive",
+            onPress: async () => {
+              if (oldAsset) {
+                mockUpdateAsset(oldAsset.id, { nfcTagId: undefined });
+              }
+              const writeOk = await writeTag(thisAssetUri);
+              if (writeOk) {
+                updateAsset({ nfcTagId: tagId });
+                refetchAsset();
+                Alert.alert("Success", `NFC tag linked to ${asset.name} and deep link written`);
+              } else {
+                Alert.alert("Error", "Failed to write NFC tag. Hold the tag steady and try again.");
+              }
+            },
+          },
+        ],
+      );
     } catch {
       Alert.alert("Error", "Failed to scan NFC tag");
     }
@@ -464,28 +503,16 @@ export default function AssetDetailScreen() {
         {nfcSupported && (
           <>
             <Text style={sectionTitle}>NFC</Text>
-            <View style={{ gap: 10 }}>
-              <Button
-                variant="outline"
-                fullWidth
-                icon="nfc"
-                iosIcon="wave.3.right"
-                androidIcon="nfc"
-                onPress={handleLinkNfcTag}
-              >
-                {asset.nfcTagId ? "Re-link NFC Tag" : "Link NFC Tag"}
-              </Button>
-              <Button
-                variant="outline"
-                fullWidth
-                icon="nfc"
-                iosIcon="wave.3.right"
-                androidIcon="nfc"
-                onPress={() => router.push(`/assets/write-nfc/${id}`)}
-              >
-                Write Deep Link to Tag
-              </Button>
-            </View>
+            <Button
+              variant="outline"
+              fullWidth
+              icon="nfc"
+              iosIcon="wave.3.right"
+              androidIcon="nfc"
+              onPress={handleLinkNfcTag}
+            >
+              {asset.nfcTagId ? "Re-link NFC Tag" : "Link NFC Tag"}
+            </Button>
           </>
         )}
 

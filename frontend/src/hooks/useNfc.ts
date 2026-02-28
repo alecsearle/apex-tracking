@@ -51,6 +51,43 @@ export function useNfc() {
     }
   }, []);
 
+  const scanAndWriteTag = useCallback(
+    async (uri: string): Promise<{ tagId: string; existingUri: string | null; written: boolean } | null> => {
+      try {
+        await NfcManager.requestTechnology(NfcTech.Ndef);
+        const tag = await NfcManager.getTag();
+        if (!tag?.id) return null;
+
+        let existingUri: string | null = null;
+        if (tag.ndefMessage?.length) {
+          const record = tag.ndefMessage[0];
+          if (record.tnf === Ndef.TNF_WELL_KNOWN) {
+            const typeStr = String.fromCharCode(...(record.type as number[]));
+            if (typeStr === "U") {
+              existingUri = Ndef.uri.decodePayload(record.payload as unknown as Uint8Array);
+            }
+          }
+        }
+
+        // If a different URI is already on the tag, return without writing so the caller can confirm
+        if (existingUri && existingUri !== uri) {
+          return { tagId: tag.id, existingUri, written: false };
+        }
+
+        const bytes = Ndef.encodeMessage([Ndef.uriRecord(uri)]);
+        if (bytes) {
+          await NfcManager.ndefHandler.writeNdefMessage(bytes);
+        }
+        return { tagId: tag.id, existingUri, written: true };
+      } catch {
+        return null;
+      } finally {
+        NfcManager.cancelTechnologyRequest().catch(() => {});
+      }
+    },
+    [],
+  );
+
   const cancelScan = useCallback(async () => {
     await NfcManager.cancelTechnologyRequest().catch(() => {});
   }, []);
@@ -67,5 +104,5 @@ export function useNfc() {
     return null;
   }, []);
 
-  return { isSupported, isEnabled, readTag, writeTag, cancelScan, parseUri };
+  return { isSupported, isEnabled, readTag, writeTag, scanAndWriteTag, cancelScan, parseUri };
 }

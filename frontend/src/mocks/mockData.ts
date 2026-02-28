@@ -851,3 +851,7 @@ export function getMaintenanceDueCount(): number {
 export function getReportsForAsset(assetId: string): MaintenanceReport[] {
   return MOCK_REPORTS.filter((r) => r.assetId === assetId);
 }
+
+export function mockGetAssetByNfcTagId(nfcTagId: string): Asset | null {
+  return MOCK_ASSETS.find((a) => a.nfcTagId === nfcTagId) ?? null;
+}
