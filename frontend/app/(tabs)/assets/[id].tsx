@@ -6,6 +6,7 @@ import Icon from "@/src/components/Icon";
 import LoadingIndicator from "@/src/components/LoadingIndicator";
 import { useAsset } from "@/src/hooks/useAsset";
 import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
+import { useNfc } from "@/src/hooks/useNfc";
 import { useSOPs } from "@/src/hooks/useSOPs";
 import { useSessions } from "@/src/hooks/useSessions";
 import { mockCreateReport } from "@/src/mocks/mockData";
@@ -71,7 +72,8 @@ export default function AssetDetailScreen() {
   const colors = useColors();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { asset, loading, error, refetch: refetchAsset, deleteAsset } = useAsset(id);
+  const { asset, loading, error, refetch: refetchAsset, updateAsset, deleteAsset } = useAsset(id);
+  const { readTag, isSupported: nfcSupported } = useNfc();
   const {
     sessions,
     refetch: refetchSessions,
@@ -167,6 +169,19 @@ export default function AssetDetailScreen() {
         },
       },
     ]);
+  };
+
+  const handleLinkNfcTag = async () => {
+    try {
+      const tag = await readTag();
+      if (tag?.id) {
+        updateAsset({ nfcTagId: tag.id });
+        refetchAsset();
+        Alert.alert("Success", `NFC tag linked to ${asset.name}`);
+      }
+    } catch {
+      Alert.alert("Error", "Failed to scan NFC tag");
+    }
   };
 
   const containerStyle: ViewStyle = { flex: 1, backgroundColor: colors.backgroundPrimary };
@@ -444,6 +459,35 @@ export default function AssetDetailScreen() {
             </View>
           )}
         </Card>
+
+        {/* NFC */}
+        {nfcSupported && (
+          <>
+            <Text style={sectionTitle}>NFC</Text>
+            <View style={{ gap: 10 }}>
+              <Button
+                variant="outline"
+                fullWidth
+                icon="nfc"
+                iosIcon="wave.3.right"
+                androidIcon="nfc"
+                onPress={handleLinkNfcTag}
+              >
+                {asset.nfcTagId ? "Re-link NFC Tag" : "Link NFC Tag"}
+              </Button>
+              <Button
+                variant="outline"
+                fullWidth
+                icon="nfc"
+                iosIcon="wave.3.right"
+                androidIcon="nfc"
+                onPress={() => router.push(`/assets/write-nfc/${id}`)}
+              >
+                Write Deep Link to Tag
+              </Button>
+            </View>
+          </>
+        )}
 
         {/* Actions */}
         <View style={{ marginTop: 28, gap: 10, alignItems: "center" }}>

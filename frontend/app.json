@@ -11,11 +11,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.alecsearle.apextracking",
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": ["TAG"]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NFCReaderUsageDescription": "Scan NFC tags to identify and track assets",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["apextracking"]
+            "CFBundleURLSchemes": [
+              "apextracking"
+            ]
           }
         ]
       }
@@ -30,6 +36,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.NFC"],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -41,7 +48,28 @@
               "pathPrefix": "/callback"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "apextracking"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "TECH_DISCOVERED",
+          "category": [
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -65,7 +93,8 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-nfc-manager"
     ],
     "experiments": {
       "typedRoutes": true,

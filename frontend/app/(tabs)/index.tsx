@@ -3,6 +3,7 @@ import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
 import { useAssets } from "@/src/hooks/useAssets";
+import { useNfc } from "@/src/hooks/useNfc";
 import { useSessions } from "@/src/hooks/useSessions";
 import { CURRENT_USER, getMaintenanceDueCount, MOCK_BUSINESS } from "@/src/mocks/mockData";
 import { useColors } from "@/src/styles/globalColors";
@@ -10,7 +11,7 @@ import { UsageSession } from "@/src/types/session";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Animated, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { Alert, Animated, ScrollView, Text, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native";
 
 function formatDuration(startedAt: string): string {
   const start = new Date(startedAt).getTime();
@@ -72,6 +73,28 @@ export default function HomeScreen() {
   const router = useRouter();
   const { assets } = useAssets();
   const { sessions } = useSessions();
+  const { readTag, parseUri, isSupported: nfcSupported } = useNfc();
+
+  const handleQuickScan = async () => {
+    try {
+      const tag = await readTag();
+      const uri = parseUri(tag);
+
+      if (uri && uri.startsWith("apextracking://")) {
+        const path = uri.replace("apextracking://", "");
+        router.push(`/(tabs)/${path}` as any);
+      } else if (tag?.id) {
+        const asset = assets.find((a) => a.nfcTagId === tag.id);
+        if (asset) {
+          router.push(`/(tabs)/assets/${asset.id}`);
+        } else {
+          Alert.alert("Unknown Tag", "This NFC tag is not linked to any asset.");
+        }
+      }
+    } catch {
+      // User cancelled or error
+    }
+  };
 
   const inUseCount = assets.filter((a) => a.status === "in_use").length;
   const maintenanceDueCount = getMaintenanceDueCount();
@@ -192,6 +215,31 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+      {nfcSupported && (
+        <TouchableOpacity
+          onPress={handleQuickScan}
+          activeOpacity={0.8}
+          style={{
+            position: "absolute",
+            bottom: 24,
+            right: 20,
+            backgroundColor: colors.brandPrimary,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 28,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+          }}
+        >
+          <Icon name="nfc" iosName="wave.3.right" androidName="nfc" size={20} color="#FFFFFF" />
+          <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "700", marginLeft: 8 }}>Scan Tag</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

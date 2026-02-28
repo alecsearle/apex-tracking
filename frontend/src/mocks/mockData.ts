@@ -745,6 +745,13 @@ export function mockCreateReport(params: {
   return newReport;
 }
 
+export function mockUpdateAsset(assetId: string, updates: Partial<Asset>): Asset | null {
+  const index = MOCK_ASSETS.findIndex((a) => a.id === assetId);
+  if (index === -1) return null;
+  MOCK_ASSETS[index] = { ...MOCK_ASSETS[index], ...updates, updatedAt: new Date().toISOString() };
+  return MOCK_ASSETS[index];
+}
+
 export function mockDeleteAsset(assetId: string): void {
   MOCK_ASSETS = MOCK_ASSETS.filter((a) => a.id !== assetId);
   MOCK_SESSIONS = MOCK_SESSIONS.filter((s) => s.assetId !== assetId);

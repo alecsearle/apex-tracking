@@ -29,6 +29,7 @@ export default function AssetsLayout() {
       <Stack.Screen name="maintenance/[id]" options={{ title: "Schedule Details" }} />
       <Stack.Screen name="maintenance/complete/[id]" options={{ title: "Complete Maintenance" }} />
       <Stack.Screen name="manual/[id]" options={{ title: "PDF Manual" }} />
+      <Stack.Screen name="write-nfc/[id]" options={{ title: "Program NFC Tag" }} />
     </Stack>
   );
 }
