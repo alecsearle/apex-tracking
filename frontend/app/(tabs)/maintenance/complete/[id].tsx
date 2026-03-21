@@ -1,7 +1,9 @@
 import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import TextInput from "@/src/components/TextInput";
-import { MOCK_SCHEDULES } from "@/src/mocks/mockData";
+import { useMaintenanceSchedule } from "@/src/hooks/useMaintenanceSchedule";
+import { maintenanceService } from "@/src/services/maintenanceService";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -12,8 +14,16 @@ export default function CompleteMaintenanceScreen() {
   const colors = useColors();
   const router = useRouter();
   const [notes, setNotes] = useState("");
+  const { businessId } = useAuth();
+  const { schedule, loading: scheduleLoading } = useMaintenanceSchedule(id);
 
-  const schedule = MOCK_SCHEDULES.find((s) => s.id === id);
+  if (scheduleLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.backgroundPrimary }}>
+        <Text style={{ fontSize: 16, color: colors.textSecondary }}>Loading...</Text>
+      </View>
+    );
+  }
 
   if (!schedule) {
     return (
@@ -28,12 +38,18 @@ export default function CompleteMaintenanceScreen() {
   const labelStyle: TextStyle = { fontSize: 14, fontWeight: "600", color: colors.textSecondary };
   const valueStyle: TextStyle = { fontSize: 16, fontWeight: "600", color: colors.textPrimary, marginTop: 2 };
 
-  function handleComplete() {
-    Alert.alert(
-      "Maintenance Completed",
-      `"${schedule!.title}" has been marked as complete.`,
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+  async function handleComplete() {
+    if (!businessId) return;
+    try {
+      await maintenanceService.completeSchedule(businessId, id, { notes: notes.trim() || undefined });
+      Alert.alert(
+        "Maintenance Completed",
+        `"${schedule!.title}" has been marked as complete.`,
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to complete maintenance.");
+    }
   }
 
   return (

@@ -1,39 +1,25 @@
-import cors from "cors";
 import dotenv from "dotenv";
-import express, { Request, Response } from "express";
-import assetRoutes from "./routes/assetRoutes";
-import maintenanceRoutes from "./routes/maintenanceRoutes";
-import usageRoutes from "./routes/usageRoutes";
-
 dotenv.config();
 
-const app = express();
-const port = process.env.PORT || 8080;
+// Import env first — triggers Zod validation, crashes early if env is wrong
+import { env } from "./config/env";
+import { prisma } from "./config/prisma";
+import app from "./app";
+import pino from "pino";
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const logger = pino({ name: "server" });
 
-// Basic Routes
-app.get("/", (req: Request, res: Response) => {
-  res.json({
-    message: "Apex Tracking API",
-    version: "1.0.0",
-    status: "running",
+async function main() {
+  // Verify database connection
+  await prisma.$connect();
+  logger.info("Database connected");
+
+  app.listen(env.PORT, () => {
+    logger.info(`Server running on port ${env.PORT} (${env.NODE_ENV})`);
   });
-});
+}
 
-app.get("/api/health", (req: Request, res: Response) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// API Routes
-app.use("/api/assets", assetRoutes);
-app.use("/api/maintenance", maintenanceRoutes);
-app.use("/api/usage", usageRoutes);
-
-// Start Server
-app.listen(port, () => {
-  (console.log(`Server is running on port ${port}`), console.log(`http://localhost:${port}`));
+main().catch((err) => {
+  logger.error(err, "Failed to start server");
+  process.exit(1);
 });

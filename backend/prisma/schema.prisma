@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Business ─────────────────────────────────────────
+
+model Business {
+  id           String   @id @default(uuid())
+  name         String
+  businessCode String   @unique @map("business_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships      Membership[]
+  assets           Asset[]
+  reports          MaintenanceReport[]
+  sops             Sop[]
+  schedules        MaintenanceSchedule[]
+  maintenanceLogs  MaintenanceLog[]
+
+  @@map("businesses")
+}
+
+// ── User ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())           // matches Supabase auth.users.id
+  email     String   @unique
+  fullName  String   @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships      Membership[]
+  createdAssets    Asset[]               @relation("AssetCreator")
+  startedSessions  UsageSession[]        @relation("SessionStarter")
+  endedSessions    UsageSession[]        @relation("SessionEnder")
+  reports          MaintenanceReport[]   @relation("ReportAuthor")
+  createdSops      Sop[]                 @relation("SopCreator")
+  createdSchedules MaintenanceSchedule[] @relation("ScheduleCreator")
+  completedLogs    MaintenanceLog[]      @relation("LogCompleter")
+
+  @@map("users")
+}
+
+// ── Membership ───────────────────────────────────────
+
+enum MemberRole {
+  owner
+  employee
+}
+
+model Membership {
+  id         String     @id @default(uuid())
+  userId     String     @map("user_id")
+  businessId String     @map("business_id")
+  role       MemberRole
+  joinedAt   DateTime   @default(now()) @map("joined_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@unique([userId])                   // MVP: one business per user
+  @@index([businessId])
+  @@map("memberships")
+}
+
+// ── Asset ────────────────────────────────────────────
+
+enum AssetStatus {
+  available
+  in_use
+  maintenance
+}
+
+model Asset {
+  id           String      @id @default(uuid())
+  businessId   String      @map("business_id")
+  name         String
+  brand        String
+  model        String
+  serialNumber String      @map("serial_number")
+  purchaseDate DateTime    @map("purchase_date") @db.Date
+  nfcTagId     String?     @map("nfc_tag_id")
+  photoUrl     String?     @map("photo_url")
+  manualUrl    String?     @map("manual_url")
+  status       AssetStatus @default(available)
+  createdBy    String      @map("created_by")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  business        Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  creator         User                  @relation("AssetCreator", fields: [createdBy], references: [id])
+  sessions        UsageSession[]
+  reports         MaintenanceReport[]
+  sops            Sop[]
+  schedules       MaintenanceSchedule[]
+  maintenanceLogs MaintenanceLog[]
+
+  @@unique([businessId, serialNumber])
+  @@index([businessId])
+  @@map("assets")
+}
+
+// ── Usage Session ────────────────────────────────────
+
+enum SessionStatus {
+  active
+  completed
+}
+
+model UsageSession {
+  id            String        @id @default(uuid())
+  assetId       String        @map("asset_id")
+  startedBy     String        @map("started_by")
+  endedBy       String?       @map("ended_by")
+  startedAt     DateTime      @default(now()) @map("started_at")
+  endedAt       DateTime?     @map("ended_at")
+  notes         String?
+  jobSiteName   String?       @map("job_site_name")
+  totalPausedMs Int?          @map("total_paused_ms")   // client tracks pause/resume; sends total on session end
+  status        SessionStatus @default(active)
+
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  starter User   @relation("SessionStarter", fields: [startedBy], references: [id])
+  ender   User?  @relation("SessionEnder", fields: [endedBy], references: [id])
+  report  MaintenanceReport?
+
+  @@index([assetId])
+  @@index([assetId, status])
+  @@map("usage_sessions")
+}
+
+// ── Maintenance Report ───────────────────────────────
+
+enum ReportSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum ReportStatus {
+  open
+  in_progress
+  resolved
+}
+
+model MaintenanceReport {
+  id          String         @id @default(uuid())
+  assetId     String         @map("asset_id")
+  sessionId   String?        @unique @map("session_id")
+  businessId  String         @map("business_id")
+  reportedBy  String         @map("reported_by")
+  title       String
+  description String
+  severity    ReportSeverity
+  status      ReportStatus   @default(open)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  asset    Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  session  UsageSession? @relation(fields: [sessionId], references: [id])
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  reporter User          @relation("ReportAuthor", fields: [reportedBy], references: [id])
+  photos   ReportPhoto[]
+
+  @@index([businessId])
+  @@index([assetId])
+  @@map("maintenance_reports")
+}
+
+// ── Report Photo ─────────────────────────────────────
+
+model ReportPhoto {
+  id        String   @id @default(uuid())
+  reportId  String   @map("report_id")
+  photoUrl  String   @map("photo_url")
+  caption   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  report MaintenanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("report_photos")
+}
+
+// ── SOP (Standard Operating Procedure) ───────────────
+
+enum SopSource {
+  manual
+  custom
+}
+
+model Sop {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  assetId    String?   @map("asset_id")         // null = business-wide SOP
+  title      String
+  content    String                              // markdown
+  source     SopSource @default(custom)
+  createdBy  String    @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  asset    Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  creator  User     @relation("SopCreator", fields: [createdBy], references: [id])
+
+  @@index([businessId])
+  @@index([assetId])
+  @@map("sops")
+}
+
+// ── Maintenance Schedule ─────────────────────────────
+
+enum ScheduleTrigger {
+  usage_hours
+  time_interval
+}
+
+model MaintenanceSchedule {
+  id                       String          @id @default(uuid())
+  assetId                  String          @map("asset_id")
+  businessId               String          @map("business_id")
+  createdBy                String          @map("created_by")
+  title                    String
+  description              String?
+  triggerType              ScheduleTrigger @map("trigger_type")
+  intervalHours            Float?          @map("interval_hours")
+  intervalDays             Int?            @map("interval_days")
+  lastCompletedAt          DateTime?       @map("last_completed_at")
+  lastCompletedUsageHours  Float?          @map("last_completed_usage_hours")
+  active                   Boolean         @default(true)
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+
+  asset    Asset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  creator  User               @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  logs     MaintenanceLog[]
+
+  @@index([assetId])
+  @@index([businessId])
+  @@map("maintenance_schedules")
+}
+
+// ── Maintenance Log (completion record) ──────────────
+
+model MaintenanceLog {
+  id                     String   @id @default(uuid())
+  scheduleId             String   @map("schedule_id")
+  assetId                String   @map("asset_id")
+  businessId             String   @map("business_id")
+  completedBy            String   @map("completed_by")
+  completedAt            DateTime @default(now()) @map("completed_at")
+  usageHoursAtCompletion Float?   @map("usage_hours_at_completion")
+  notes                  String?
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  schedule        MaintenanceSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  asset           Asset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  completedByUser User                @relation("LogCompleter", fields: [completedBy], references: [id])
+  photos          MaintenanceLogPhoto[]
+
+  @@index([scheduleId])
+  @@index([assetId])
+  @@index([businessId])
+  @@map("maintenance_logs")
+}
+
+// ── Maintenance Log Photo ────────────────────────────
+
+model MaintenanceLogPhoto {
+  id        String   @id @default(uuid())
+  logId     String   @map("log_id")
+  photoUrl  String   @map("photo_url")
+  caption   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  log MaintenanceLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([logId])
+  @@map("maintenance_log_photos")
+}

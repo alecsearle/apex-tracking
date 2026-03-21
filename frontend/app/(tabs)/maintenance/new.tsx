@@ -1,7 +1,9 @@
 import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import TextInput from "@/src/components/TextInput";
-import { MOCK_ASSETS } from "@/src/mocks/mockData";
+import { useAssets } from "@/src/hooks/useAssets";
+import { maintenanceService } from "@/src/services/maintenanceService";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
 import { ScheduleTrigger } from "@/src/types/maintenance";
 import { useRouter } from "expo-router";
@@ -11,6 +13,8 @@ import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "
 export default function NewMaintenanceScheduleScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { businessId } = useAuth();
+  const { assets } = useAssets();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
@@ -24,8 +28,8 @@ export default function NewMaintenanceScheduleScreen() {
     textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8,
   };
 
-  function handleSubmit() {
-    if (!selectedAssetId) {
+  async function handleSubmit() {
+    if (!selectedAssetId || !businessId) {
       Alert.alert("Error", "Please select an asset.");
       return;
     }
@@ -37,12 +41,25 @@ export default function NewMaintenanceScheduleScreen() {
       Alert.alert("Error", "Please enter a valid interval number.");
       return;
     }
-    const asset = MOCK_ASSETS.find((a) => a.id === selectedAssetId);
-    Alert.alert(
-      "Schedule Created",
-      `"${title}" for ${asset?.name} has been created.`,
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+    try {
+      await maintenanceService.createSchedule(businessId, {
+        assetId: selectedAssetId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        triggerType,
+        ...(triggerType === "usage_hours"
+          ? { intervalHours: Number(intervalValue) }
+          : { intervalDays: Number(intervalValue) }),
+      });
+      const asset = assets.find((a) => a.id === selectedAssetId);
+      Alert.alert(
+        "Schedule Created",
+        `"${title}" for ${asset?.name} has been created.`,
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to create schedule.");
+    }
   }
 
   const triggerOption = (type: ScheduleTrigger, label: string) => {
@@ -72,7 +89,7 @@ export default function NewMaintenanceScheduleScreen() {
         {/* Asset Picker */}
         <Text style={sectionLabel}>Asset</Text>
         <View style={{ gap: 8 }}>
-          {MOCK_ASSETS.map((asset) => (
+          {assets.map((asset) => (
             <Card
               key={asset.id}
               variant={selectedAssetId === asset.id ? "elevated" : "outlined"}

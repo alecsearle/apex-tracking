@@ -1,7 +1,9 @@
 import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import TextInput from "@/src/components/TextInput";
-import { MOCK_ASSETS } from "@/src/mocks/mockData";
+import { useAssets } from "@/src/hooks/useAssets";
+import { sopService } from "@/src/services/sopService";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -10,6 +12,8 @@ import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "
 export default function NewSOPScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { businessId } = useAuth();
+  const { assets } = useAssets();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
@@ -21,7 +25,7 @@ export default function NewSOPScreen() {
     textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8,
   };
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!title.trim()) {
       Alert.alert("Error", "Title is required.");
       return;
@@ -30,9 +34,19 @@ export default function NewSOPScreen() {
       Alert.alert("Error", "Content is required.");
       return;
     }
-    Alert.alert("SOP Created", `"${title}" has been created.`, [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    if (!businessId) return;
+    try {
+      await sopService.create(businessId, {
+        title: title.trim(),
+        content: content.trim(),
+        assetId: selectedAssetId ?? undefined,
+      });
+      Alert.alert("SOP Created", `"${title}" has been created.`, [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to create SOP.");
+    }
   }
 
   return (
@@ -62,7 +76,7 @@ export default function NewSOPScreen() {
               <Text style={{ fontSize: 15, fontWeight: "600", color: colors.textHeading }}>Business-wide (all assets)</Text>
             </View>
           </Card>
-          {MOCK_ASSETS.map((asset) => (
+          {assets.map((asset) => (
             <Card
               key={asset.id}
               variant={selectedAssetId === asset.id ? "elevated" : "outlined"}

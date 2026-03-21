@@ -1,13 +1,32 @@
 import AssetForm, { SelectedFile } from "@/src/components/AssetForm";
+import { useAuth } from "@/src/hooks/useAuth";
+import { assetService } from "@/src/services/assetService";
 import { CreateAssetDTO } from "@/src/types/asset";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 
 export default function NewAssetScreen() {
   const router = useRouter();
+  const { businessId } = useAuth();
 
   const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile) => {
-    // Mock: just show success and go back
+    if (!businessId) {
+      Alert.alert("Error", "No business found. Please log in again.");
+      return;
+    }
+
+    const asset = await assetService.create(businessId, data);
+
+    // Upload manual PDF if provided
+    if (file && asset.id) {
+      try {
+        await assetService.uploadManual(businessId, asset.id, file.uri, file.name);
+      } catch {
+        // Asset was created; manual upload failed — non-blocking
+        Alert.alert("Note", "Asset created but manual upload failed. You can retry from the asset details.");
+      }
+    }
+
     Alert.alert("Asset Created", `"${data.name}" has been added.`, [
       { text: "OK", onPress: () => router.back() },
     ]);

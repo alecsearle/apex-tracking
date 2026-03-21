@@ -1,49 +1,58 @@
 import { Asset, CreateAssetDTO, UpdateAssetDTO } from "@/src/types/asset";
-import { API_BASE_URL, apiRequest } from "./api";
+import { apiRequest, apiUpload } from "./api";
 
-interface UploadManualResponse {
-  message: string;
-  asset: Asset;
-  filename: string;
-}
-
+/** All routes are business-scoped: /businesses/:businessId/assets */
 export const assetService = {
-  getAll: () => apiRequest<Asset[]>("/assets"),
+  getAll: (businessId: string) =>
+    apiRequest<Asset[]>(`/businesses/${businessId}/assets`),
 
-  getById: (id: string) => apiRequest<Asset>(`/assets/${id}`),
+  getById: (businessId: string, id: string) =>
+    apiRequest<Asset>(`/businesses/${businessId}/assets/${id}`),
 
-  create: (data: CreateAssetDTO) =>
-    apiRequest<Asset>("/assets", { method: "POST", body: data }),
+  create: (businessId: string, data: CreateAssetDTO) =>
+    apiRequest<Asset>(`/businesses/${businessId}/assets`, {
+      method: "POST",
+      body: data,
+    }),
 
-  update: (id: string, data: UpdateAssetDTO) =>
-    apiRequest<Asset>(`/assets/${id}`, { method: "PUT", body: data }),
+  update: (businessId: string, id: string, data: UpdateAssetDTO) =>
+    apiRequest<Asset>(`/businesses/${businessId}/assets/${id}`, {
+      method: "PUT",
+      body: data,
+    }),
 
-  delete: (id: string) =>
-    apiRequest<void>(`/assets/${id}`, { method: "DELETE" }),
+  delete: (businessId: string, id: string) =>
+    apiRequest<void>(`/businesses/${businessId}/assets/${id}`, {
+      method: "DELETE",
+    }),
 
-  uploadManual: async (id: string, fileUri: string, fileName: string): Promise<UploadManualResponse> => {
+  uploadPhoto: async (businessId: string, id: string, fileUri: string, fileName: string) => {
+    const formData = new FormData();
+    formData.append("photo", {
+      uri: fileUri,
+      name: fileName,
+      type: "image/jpeg",
+    } as any);
+    return apiUpload<Asset>(`/businesses/${businessId}/assets/${id}/photo`, formData);
+  },
+
+  deletePhoto: (businessId: string, id: string) =>
+    apiRequest<void>(`/businesses/${businessId}/assets/${id}/photo`, {
+      method: "DELETE",
+    }),
+
+  uploadManual: async (businessId: string, id: string, fileUri: string, fileName: string) => {
     const formData = new FormData();
     formData.append("manual", {
       uri: fileUri,
       name: fileName,
       type: "application/pdf",
     } as any);
-
-    const response = await fetch(`${API_BASE_URL}/assets/${id}/manual`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || "Failed to upload manual");
-    }
-
-    return response.json();
+    return apiUpload<Asset>(`/businesses/${businessId}/assets/${id}/manual`, formData);
   },
 
-  getManualUrl: (id: string) => `${API_BASE_URL}/assets/${id}/manual`,
-
-  deleteManual: (id: string) =>
-    apiRequest<void>(`/assets/${id}/manual`, { method: "DELETE" }),
+  deleteManual: (businessId: string, id: string) =>
+    apiRequest<void>(`/businesses/${businessId}/assets/${id}/manual`, {
+      method: "DELETE",
+    }),
 };

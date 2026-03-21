@@ -2,7 +2,7 @@ import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
 import { useMaintenanceLogs } from "@/src/hooks/useMaintenanceLogs";
-import { MOCK_SCHEDULES } from "@/src/mocks/mockData";
+import { useMaintenanceSchedule } from "@/src/hooks/useMaintenanceSchedule";
 import { useColors } from "@/src/styles/globalColors";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,8 +27,16 @@ export default function AssetMaintenanceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const router = useRouter();
-  const schedule = MOCK_SCHEDULES.find((s) => s.id === id);
+  const { schedule, loading: scheduleLoading } = useMaintenanceSchedule(id);
   const { logs } = useMaintenanceLogs(id);
+
+  if (scheduleLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.backgroundPrimary }}>
+        <Text style={{ fontSize: 16, color: colors.textSecondary }}>Loading...</Text>
+      </View>
+    );
+  }
 
   if (!schedule) {
     return (

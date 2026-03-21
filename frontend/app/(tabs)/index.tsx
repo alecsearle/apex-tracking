@@ -5,7 +5,8 @@ import Icon from "@/src/components/Icon";
 import { useAssets } from "@/src/hooks/useAssets";
 import { useNfc } from "@/src/hooks/useNfc";
 import { useSessions } from "@/src/hooks/useSessions";
-import { CURRENT_USER, getMaintenanceDueCount, MOCK_BUSINESS } from "@/src/mocks/mockData";
+import { useAuth } from "@/src/hooks/useAuth";
+import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
 import { useColors } from "@/src/styles/globalColors";
 import { UsageSession } from "@/src/types/session";
 import { useRouter } from "expo-router";
@@ -74,6 +75,8 @@ export default function HomeScreen() {
   const { assets } = useAssets();
   const { sessions } = useSessions();
   const { readTag, parseUri, isSupported: nfcSupported } = useNfc();
+  const { businessName, session } = useAuth();
+  const { overdue, dueSoon } = useMaintenanceSchedules();
 
   const handleQuickScan = async () => {
     try {
@@ -97,8 +100,9 @@ export default function HomeScreen() {
   };
 
   const inUseCount = assets.filter((a) => a.status === "in_use").length;
-  const maintenanceDueCount = getMaintenanceDueCount();
+  const maintenanceDueCount = overdue.length + dueSoon.length;
   const recentAssets = assets.slice(0, 3);
+  const userName = session?.user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
   const containerStyle: ViewStyle = { flex: 1, backgroundColor: colors.backgroundPrimary };
   const heroStyle: ViewStyle = {
@@ -125,8 +129,8 @@ export default function HomeScreen() {
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={heroStyle}>
-          <Text style={heroTitle}>{MOCK_BUSINESS.name}</Text>
-          <Text style={heroSubtitle}>Welcome back, {CURRENT_USER.fullName.split(" ")[0]}</Text>
+          <Text style={heroTitle}>{businessName ?? "Apex Tracking"}</Text>
+          <Text style={heroSubtitle}>Welcome back, {userName}</Text>
         </View>
 
         <View style={statsRow}>

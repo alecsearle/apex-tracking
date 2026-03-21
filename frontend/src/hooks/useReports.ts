@@ -1,15 +1,31 @@
-import { getReportsForAsset, MOCK_REPORTS } from "@/src/mocks/mockData";
 import { MaintenanceReport } from "@/src/types/report";
-import { useCallback, useState } from "react";
+import { reportService } from "@/src/services/reportService";
+import { useAuth } from "./useAuth";
+import { useCallback, useEffect, useState } from "react";
 
 export function useReports(assetId?: string) {
-  const [reports] = useState<MaintenanceReport[]>(
-    assetId ? getReportsForAsset(assetId) : MOCK_REPORTS
-  );
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const { businessId } = useAuth();
+  const [reports, setReports] = useState<MaintenanceReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(() => {}, []);
+  const refetch = useCallback(async () => {
+    if (!businessId) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await reportService.getAll(businessId, assetId ? { assetId } : undefined);
+      setReports(data);
+    } catch (e: any) {
+      setError(e.message || "Failed to load reports");
+    } finally {
+      setLoading(false);
+    }
+  }, [businessId, assetId]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   return { reports, loading, error, refetch };
 }

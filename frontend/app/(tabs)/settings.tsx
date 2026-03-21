@@ -2,7 +2,7 @@ import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
 import { useMembers } from "@/src/hooks/useMembers";
-import { CURRENT_USER, MOCK_BUSINESS, MOCK_MEMBERSHIPS } from "@/src/mocks/mockData";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
 import { Membership } from "@/src/types/business";
 import { supabase } from "@/lib/supabase";
@@ -51,8 +51,12 @@ function MemberRow({ member }: { member: Membership }) {
 export default function SettingsScreen() {
   const colors = useColors();
   const { members } = useMembers();
+  const { session, businessName, businessCode, role } = useAuth();
 
-  const currentMembership = MOCK_MEMBERSHIPS.find((m) => m.userId === CURRENT_USER.id);
+  const currentUser = {
+    fullName: session?.user?.user_metadata?.full_name ?? "User",
+    email: session?.user?.email ?? "",
+  };
 
   const containerStyle: ViewStyle = { flex: 1, backgroundColor: colors.backgroundPrimary };
   const contentStyle: ViewStyle = { padding: 16, paddingTop: 72, paddingBottom: 48 };
@@ -68,7 +72,7 @@ export default function SettingsScreen() {
   const valueStyle: TextStyle = { fontSize: 15, fontWeight: "600", color: colors.textPrimary };
 
   function handleCopyCode() {
-    Alert.alert("Business Code", MOCK_BUSINESS.businessCode, [{ text: "OK" }]);
+    Alert.alert("Business Code", businessCode ?? "", [{ text: "OK" }]);
   }
 
   async function handleSignOut() {
@@ -101,15 +105,15 @@ export default function SettingsScreen() {
                 justifyContent: "center", alignItems: "center", marginRight: 14,
               }}>
                 <Text style={{ fontSize: 24, fontWeight: "700", color: colors.brandPrimary }}>
-                  {CURRENT_USER.fullName.charAt(0)}
+                  {currentUser.fullName.charAt(0)}
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 18, fontWeight: "700", color: colors.textHeading }}>
-                  {CURRENT_USER.fullName}
+                  {currentUser.fullName}
                 </Text>
                 <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 2 }}>
-                  {CURRENT_USER.email}
+                  {currentUser.email}
                 </Text>
               </View>
             </View>
@@ -122,12 +126,12 @@ export default function SettingsScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <View style={detailRow}>
               <Text style={labelStyle}>Name</Text>
-              <Text style={valueStyle}>{MOCK_BUSINESS.name}</Text>
+              <Text style={valueStyle}>{businessName ?? "—"}</Text>
             </View>
             <View style={detailRow}>
               <Text style={labelStyle}>Code</Text>
               <Pressable onPress={handleCopyCode} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={[valueStyle, { color: colors.brandPrimary }]}>{MOCK_BUSINESS.businessCode}</Text>
+                <Text style={[valueStyle, { color: colors.brandPrimary }]}>{businessCode ?? "—"}</Text>
                 <Icon name="content-copy" iosName="doc.on.doc" androidName="content-copy" size={16} color={colors.brandPrimary} />
               </Pressable>
             </View>
@@ -137,7 +141,7 @@ export default function SettingsScreen() {
                 backgroundColor: colors.brandLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
               }}>
                 <Text style={{ fontSize: 13, fontWeight: "600", color: colors.brandPrimary, textTransform: "capitalize" }}>
-                  {currentMembership?.role ?? "owner"}
+                  {role ?? "owner"}
                 </Text>
               </View>
             </View>

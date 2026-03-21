@@ -3,7 +3,7 @@ import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
 import TextInput from "@/src/components/TextInput";
 import { useAuthContext } from "@/src/contexts/AuthContext";
-import { mockCreateBusiness, mockJoinBusiness } from "@/src/mocks/mockData";
+import { businessService } from "@/src/services/businessService";
 import { useColors } from "@/src/styles/globalColors";
 import { useState } from "react";
 import {
@@ -28,7 +28,7 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [successCode, setSuccessCode] = useState<string | null>(null);
 
-  function handleCreate() {
+  async function handleCreate() {
     const trimmed = businessName.trim();
     if (!trimmed) {
       setError("Business name is required.");
@@ -42,15 +42,17 @@ export default function Onboarding() {
     setLoading(true);
     setError("");
 
-    // Simulate async delay
-    setTimeout(() => {
-      const { business } = mockCreateBusiness(trimmed);
-      setSuccessCode(business.businessCode);
+    try {
+      const result = await businessService.create(trimmed);
+      setSuccessCode(result.business.businessCode);
+    } catch (e: any) {
+      setError(e.message || "Failed to create business.");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   }
 
-  function handleJoin() {
+  async function handleJoin() {
     const trimmed = businessCode.trim();
     if (!trimmed) {
       setError("Business code is required.");
@@ -60,17 +62,14 @@ export default function Onboarding() {
     setLoading(true);
     setError("");
 
-    // Simulate async delay
-    setTimeout(() => {
-      const result = mockJoinBusiness(trimmed);
-      if (!result.success) {
-        setError(result.error ?? "Failed to join business.");
-        setLoading(false);
-        return;
-      }
-      setLoading(false);
+    try {
+      await businessService.join(trimmed);
       completeOnboarding();
-    }, 500);
+    } catch (e: any) {
+      setError(e.message || "Failed to join business.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleSuccessContinue() {

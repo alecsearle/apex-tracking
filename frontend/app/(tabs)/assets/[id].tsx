@@ -5,11 +5,14 @@ import ErrorMessage from "@/src/components/ErrorMessage";
 import Icon from "@/src/components/Icon";
 import LoadingIndicator from "@/src/components/LoadingIndicator";
 import { useAsset } from "@/src/hooks/useAsset";
+import { useAssets } from "@/src/hooks/useAssets";
 import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
 import { useNfc } from "@/src/hooks/useNfc";
 import { useSOPs } from "@/src/hooks/useSOPs";
 import { useSessions } from "@/src/hooks/useSessions";
-import { mockCreateReport, mockGetAssetByNfcTagId, mockUpdateAsset } from "@/src/mocks/mockData";
+import { useAuth } from "@/src/hooks/useAuth";
+import { reportService } from "@/src/services/reportService";
+import { assetService } from "@/src/services/assetService";
 import { useColors } from "@/src/styles/globalColors";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
 import { ReportSeverity } from "@/src/types/report";
@@ -72,6 +75,8 @@ export default function AssetDetailScreen() {
   const colors = useColors();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { businessId } = useAuth();
+  const { assets } = useAssets();
   const { asset, loading, error, refetch: refetchAsset, updateAsset, deleteAsset } = useAsset(id);
   const { scanAndWriteTag, writeTag, isSupported: nfcSupported } = useNfc();
   const {
@@ -122,24 +127,28 @@ export default function AssetDetailScreen() {
     setEndSessionModalVisible(true);
   };
 
-  const handleCompleteSession = (data: {
+  const handleCompleteSession = async (data: {
     notes?: string;
     jobSiteName?: string;
     report?: { title: string; description: string; severity: ReportSeverity };
   }) => {
-    if (!endingSession) return;
-    endSession(endingSession.id, {
+    if (!endingSession || !businessId) return;
+    await endSession(endingSession.id, {
       notes: data.notes,
       jobSiteName: data.jobSiteName,
     });
     if (data.report) {
-      mockCreateReport({
-        assetId: asset.id,
-        sessionId: endingSession.id,
-        title: data.report.title,
-        description: data.report.description,
-        severity: data.report.severity,
-      });
+      try {
+        await reportService.create(businessId, {
+          assetId: asset.id,
+          sessionId: endingSession.id,
+          title: data.report.title,
+          description: data.report.description,
+          severity: data.report.severity,
+        });
+      } catch {
+        // Report creation failure shouldn't block session end
+      }
     }
     setEndSessionModalVisible(false);
     setEndingSession(null);
@@ -191,7 +200,8 @@ export default function AssetDetailScreen() {
       }
 
       // Tag has a different URI — ask user to confirm overwrite
-      const oldAsset = mockGetAssetByNfcTagId(tagId);
+      // Find asset by NFC tag from loaded assets list
+      const oldAsset = assets.find((a) => a.nfcTagId === tagId);
       const oldAssetName = oldAsset?.name ?? "another asset";
 
       Alert.alert(
@@ -203,8 +213,12 @@ export default function AssetDetailScreen() {
             text: "Replace",
             style: "destructive",
             onPress: async () => {
-              if (oldAsset) {
-                mockUpdateAsset(oldAsset.id, { nfcTagId: undefined });
+              if (oldAsset && businessId) {
+                try {
+                  await assetService.update(businessId, oldAsset.id, { nfcTagId: undefined });
+                } catch {
+                  // Best effort — continue with linking
+                }
               }
               const writeOk = await writeTag(thisAssetUri);
               if (writeOk) {

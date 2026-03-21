@@ -1,27 +1,75 @@
-import express from "express";
+import { Router } from "express";
 import { assetController } from "../controllers/assetController";
-import { uploadManual } from "../middleware/upload";
+import { authenticate, requireMembership } from "../middleware/authenticate";
+import { authorize } from "../middleware/authorize";
+import { validateRequest } from "../middleware/validateRequest";
+import { generalLimiter, uploadLimiter } from "../middleware/rateLimiter";
+import { uploadImage, uploadPdf } from "../middleware/multerConfig";
+import { createAssetSchema, updateAssetSchema } from "../validators/assetValidator";
 
-const router = express.Router();
+const router = Router({ mergeParams: true });
 
-// Base path: /api/assets
-// Get all assets
+// All routes require authentication + business membership
+router.use(authenticate, requireMembership);
+
+// GET /api/businesses/:businessId/assets
 router.get("/", assetController.getAll);
-// Get single asset by ID
-router.get("/:id", assetController.getById);
-// Create new asset
-router.post("/", assetController.create);
-// Update existing asset
-router.put("/:id", assetController.update);
-// Delete asset
-router.delete("/:id", assetController.delete);
 
-// Manual Routes
-// Upload manual for asset
-router.post("/:id/manual", uploadManual.single("manual"), assetController.uploadManual);
-// Get manual file for asset
-router.get("/:id/manual", assetController.getManual);
-// Delete manual file for asset
-router.delete("/:id/manual", assetController.deleteManual);
+// POST /api/businesses/:businessId/assets
+router.post(
+  "/",
+  generalLimiter,
+  validateRequest(createAssetSchema),
+  assetController.create
+);
+
+// GET /api/businesses/:businessId/assets/:id
+router.get("/:id", assetController.getById);
+
+// PUT /api/businesses/:businessId/assets/:id
+router.put(
+  "/:id",
+  generalLimiter,
+  authorize("owner"),
+  validateRequest(updateAssetSchema),
+  assetController.update
+);
+
+// DELETE /api/businesses/:businessId/assets/:id
+router.delete("/:id", generalLimiter, authorize("owner"), assetController.delete);
+
+// POST /api/businesses/:businessId/assets/:id/photo
+router.post(
+  "/:id/photo",
+  uploadLimiter,
+  authorize("owner"),
+  uploadImage,
+  assetController.uploadPhoto
+);
+
+// DELETE /api/businesses/:businessId/assets/:id/photo
+router.delete(
+  "/:id/photo",
+  generalLimiter,
+  authorize("owner"),
+  assetController.deletePhoto
+);
+
+// POST /api/businesses/:businessId/assets/:id/manual
+router.post(
+  "/:id/manual",
+  uploadLimiter,
+  authorize("owner"),
+  uploadPdf,
+  assetController.uploadManual
+);
+
+// DELETE /api/businesses/:businessId/assets/:id/manual
+router.delete(
+  "/:id/manual",
+  generalLimiter,
+  authorize("owner"),
+  assetController.deleteManual
+);
 
 export default router;

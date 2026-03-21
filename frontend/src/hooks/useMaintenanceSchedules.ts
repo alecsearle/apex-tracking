@@ -1,20 +1,33 @@
-import {
-  getDueSoonSchedules,
-  getOverdueSchedules,
-  getSchedulesForAsset,
-  MOCK_SCHEDULES,
-} from "@/src/mocks/mockData";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
-import { useCallback, useState } from "react";
+import { maintenanceService } from "@/src/services/maintenanceService";
+import { useAuth } from "./useAuth";
+import { useCallback, useEffect, useState } from "react";
 
 export function useMaintenanceSchedules(assetId?: string) {
-  const [schedules] = useState<MaintenanceSchedule[]>(
-    assetId ? getSchedulesForAsset(assetId) : MOCK_SCHEDULES
-  );
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const { businessId } = useAuth();
+  const [schedules, setSchedules] = useState<MaintenanceSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(() => {}, []);
+  const refetch = useCallback(async () => {
+    if (!businessId) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = assetId
+        ? await maintenanceService.getForAsset(businessId, assetId)
+        : await maintenanceService.getSchedules(businessId);
+      setSchedules(data);
+    } catch (e: any) {
+      setError(e.message || "Failed to load schedules");
+    } finally {
+      setLoading(false);
+    }
+  }, [businessId, assetId]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const overdue = schedules.filter((s) => s.dueStatus === "overdue");
   const dueSoon = schedules.filter((s) => s.dueStatus === "due_soon");

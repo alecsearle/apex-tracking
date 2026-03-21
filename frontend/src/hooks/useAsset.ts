@@ -1,31 +1,56 @@
-import { MOCK_ASSETS, mockDeleteAsset, mockUpdateAsset } from "@/src/mocks/mockData";
 import { Asset, UpdateAssetDTO } from "@/src/types/asset";
-import { useCallback, useState } from "react";
+import { assetService } from "@/src/services/assetService";
+import { useAuth } from "./useAuth";
+import { useCallback, useEffect, useState } from "react";
 
 export function useAsset(id: string) {
-  const [asset, setAsset] = useState<Asset | null>(
-    MOCK_ASSETS.find((a) => a.id === id) ?? null,
-  );
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const { businessId } = useAuth();
+  const [asset, setAsset] = useState<Asset | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(() => {
-    setAsset(MOCK_ASSETS.find((a) => a.id === id) ?? null);
-  }, [id]);
+  const refetch = useCallback(async () => {
+    if (!businessId) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await assetService.getById(businessId, id);
+      setAsset(data);
+    } catch (e: any) {
+      setError(e.message || "Failed to load asset");
+    } finally {
+      setLoading(false);
+    }
+  }, [businessId, id]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const updateAsset = useCallback(
-    (updates: UpdateAssetDTO) => {
-      const updated = mockUpdateAsset(id, updates);
-      if (updated) setAsset(updated);
-      return updated;
+    async (updates: UpdateAssetDTO) => {
+      if (!businessId) return null;
+      try {
+        const updated = await assetService.update(businessId, id, updates);
+        setAsset(updated);
+        return updated;
+      } catch (e: any) {
+        setError(e.message || "Failed to update asset");
+        return null;
+      }
     },
-    [id],
+    [businessId, id]
   );
 
-  const deleteAsset = useCallback(() => {
-    mockDeleteAsset(id);
-    setAsset(null);
-  }, [id]);
+  const deleteAsset = useCallback(async () => {
+    if (!businessId) return;
+    try {
+      await assetService.delete(businessId, id);
+      setAsset(null);
+    } catch (e: any) {
+      setError(e.message || "Failed to delete asset");
+    }
+  }, [businessId, id]);
 
   return { asset, loading, error, refetch, updateAsset, deleteAsset };
 }
