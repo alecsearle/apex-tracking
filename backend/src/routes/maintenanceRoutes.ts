@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { maintenanceController } from "../controllers/maintenanceController";
 import { authenticate, requireMembership } from "../middleware/authenticate";
-import { authorize } from "../middleware/authorize";
+
 import { validateRequest } from "../middleware/validateRequest";
 import { generalLimiter, uploadLimiter } from "../middleware/rateLimiter";
 import { uploadImage } from "../middleware/multerConfig";
@@ -19,11 +19,10 @@ router.use(authenticate, requireMembership);
 // GET /api/businesses/:businessId/maintenance/schedules
 router.get("/schedules", maintenanceController.getSchedules);
 
-// POST /api/businesses/:businessId/maintenance/schedules
+// POST /api/businesses/:businessId/maintenance/schedules (any member can create)
 router.post(
   "/schedules",
   generalLimiter,
-  authorize("owner"),
   validateRequest(createScheduleSchema),
   maintenanceController.createSchedule
 );
@@ -31,20 +30,18 @@ router.post(
 // GET /api/businesses/:businessId/maintenance/schedules/:id
 router.get("/schedules/:id", maintenanceController.getScheduleById);
 
-// PUT /api/businesses/:businessId/maintenance/schedules/:id
+// PUT /api/businesses/:businessId/maintenance/schedules/:id (creator or owner)
 router.put(
   "/schedules/:id",
   generalLimiter,
-  authorize("owner"),
   validateRequest(updateScheduleSchema),
   maintenanceController.updateSchedule
 );
 
-// DELETE /api/businesses/:businessId/maintenance/schedules/:id
+// DELETE /api/businesses/:businessId/maintenance/schedules/:id (creator or owner)
 router.delete(
   "/schedules/:id",
   generalLimiter,
-  authorize("owner"),
   maintenanceController.deleteSchedule
 );
 

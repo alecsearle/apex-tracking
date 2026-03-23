@@ -33,7 +33,9 @@ export const maintenanceController = {
     const schedule = await maintenanceService.updateSchedule(
       req.membership!.businessId,
       param(req.params.id),
-      req.body
+      req.body,
+      req.user!.id,
+      req.membership!.role
     );
     res.json(schedule);
   },
@@ -41,7 +43,9 @@ export const maintenanceController = {
   async deleteSchedule(req: Request, res: Response): Promise<void> {
     await maintenanceService.deleteSchedule(
       req.membership!.businessId,
-      param(req.params.id)
+      param(req.params.id),
+      req.user!.id,
+      req.membership!.role
     );
     res.status(204).send();
   },

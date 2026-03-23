@@ -3,18 +3,49 @@ import { reportRepository } from "../repositories/reportRepository";
 import { storageService } from "./storageService";
 import { NotFoundError } from "../utils/errors";
 
+/**
+ * Flatten Prisma report relations into the shape the frontend expects:
+ * { reportedByName, assetName } instead of { reporter: { fullName }, asset: { name } }
+ */
+function formatReport(
+  report: {
+    id: string;
+    assetId: string;
+    sessionId: string | null;
+    businessId: string;
+    reportedBy: string;
+    title: string;
+    description: string;
+    severity: string;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+    reporter: { id: string; fullName: string };
+    asset: { id: string; name: string };
+    photos: Array<{ id: string; reportId: string; photoUrl: string; caption: string | null; createdAt: Date }>;
+  }
+) {
+  const { reporter, asset, ...rest } = report;
+  return {
+    ...rest,
+    reportedByName: reporter.fullName,
+    assetName: asset.name,
+  };
+}
+
 export const reportService = {
   async getAll(
     businessId: string,
     filters?: { assetId?: string; severity?: string; status?: string }
   ) {
-    return reportRepository.findAll(businessId, filters);
+    const reports = await reportRepository.findAll(businessId, filters);
+    return reports.map((report) => formatReport(report));
   },
 
   async getById(businessId: string, reportId: string) {
     const report = await reportRepository.findById(businessId, reportId);
     if (!report) throw new NotFoundError("Report not found");
-    return report;
+    return formatReport(report);
   },
 
   async create(
@@ -43,7 +74,7 @@ export const reportService = {
       await assetRepository.updateStatus(data.assetId, "maintenance");
     }
 
-    return report;
+    return formatReport(report);
   },
 
   async update(
@@ -56,7 +87,8 @@ export const reportService = {
       status?: "open" | "in_progress" | "resolved";
     }
   ) {
-    const existing = await this.getById(businessId, reportId);
+    const existing = await reportRepository.findById(businessId, reportId);
+    if (!existing) throw new NotFoundError("Report not found");
 
     const updated = await reportRepository.update(businessId, reportId, data);
 
@@ -73,7 +105,7 @@ export const reportService = {
       }
     }
 
-    return updated;
+    return formatReport(updated);
   },
 
   async addPhoto(

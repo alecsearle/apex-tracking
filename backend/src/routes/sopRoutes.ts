@@ -14,10 +14,11 @@ router.use(authenticate, requireMembership);
 // GET /api/businesses/:businessId/sops
 router.get("/", sopController.getAll);
 
-// POST /api/businesses/:businessId/sops
+// POST /api/businesses/:businessId/sops (owner only)
 router.post(
   "/",
   generalLimiter,
+  authorize("owner"),
   validateRequest(createSopSchema),
   sopController.create
 );
@@ -25,10 +26,11 @@ router.post(
 // GET /api/businesses/:businessId/sops/:id
 router.get("/:id", sopController.getById);
 
-// PUT /api/businesses/:businessId/sops/:id
+// PUT /api/businesses/:businessId/sops/:id (owner only)
 router.put(
   "/:id",
   generalLimiter,
+  authorize("owner"),
   validateRequest(updateSopSchema),
   sopController.update
 );

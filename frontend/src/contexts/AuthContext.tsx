@@ -18,6 +18,8 @@ interface AuthContextValue {
   businessName: string | null;
   businessCode: string | null;
   needsOnboarding: boolean;
+  /** True if /auth/me failed (network error, backend down) — user should retry, not onboard */
+  profileError: boolean;
   /** Re-fetch /auth/me (call after creating/joining a business) */
   refreshProfile: () => Promise<void>;
   devLogin: () => void;
@@ -53,13 +55,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [businessCode, setBusinessCode] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isDevSession, setIsDevSession] = useState(false);
+  const [profileError, setProfileError] = useState(false);
 
   /**
    * Fetch user profile + membership from backend.
    * Determines whether user needs onboarding (no business yet).
+   * Distinguishes "no membership" (onboarding) from "API error" (don't redirect).
    */
   const fetchProfile = useCallback(async () => {
     try {
+      setProfileError(false);
       const me = await apiRequest<MeResponse>("/auth/me");
       if (me.membership) {
         setBusinessId(me.membership.businessId);
@@ -75,12 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsOnboarding(true);
       }
     } catch {
-      // If /auth/me fails (e.g. dev mock token), assume onboarding needed
-      setBusinessId(null);
-      setRole(null);
-      setBusinessName(null);
-      setBusinessCode(null);
-      setNeedsOnboarding(true);
+      // API error (network, backend down, etc.) — do NOT send to onboarding.
+      // Keep current state; set error flag so UI can show a retry message.
+      setProfileError(true);
     }
   }, []);
 
@@ -124,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setBusinessName(null);
         setBusinessCode(null);
         setNeedsOnboarding(false);
+        setProfileError(false);
       }
     });
 
@@ -165,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         businessName,
         businessCode,
         needsOnboarding,
+        profileError,
         refreshProfile: fetchProfile,
         devLogin,
         devOnboardingLogin,

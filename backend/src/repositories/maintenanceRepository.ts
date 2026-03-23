@@ -10,7 +10,7 @@ export const maintenanceRepository = {
     return prisma.maintenanceSchedule.findMany({
       where,
       include: {
-        asset: { select: { id: true, name: true } },
+        asset: { select: { id: true, name: true, purchaseDate: true } },
         creator: { select: { id: true, fullName: true } },
         _count: { select: { logs: true } },
       },
@@ -41,7 +41,7 @@ export const maintenanceRepository = {
     return prisma.maintenanceSchedule.create({
       data,
       include: {
-        asset: { select: { id: true, name: true } },
+        asset: { select: { id: true, name: true, purchaseDate: true } },
         creator: { select: { id: true, fullName: true } },
       },
     });

@@ -1,15 +1,9 @@
 import Icon from "@/src/components/Icon";
-import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
-import { Redirect, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
-  const { session, loading, needsOnboarding } = useAuth();
   const colors = useColors();
-
-  if (loading) return null;
-  if (!session) return <Redirect href="/(auth)/login" />;
-  if (needsOnboarding) return <Redirect href="/(auth)/onboarding" />;
 
   return (
     <Tabs

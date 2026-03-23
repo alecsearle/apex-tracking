@@ -17,6 +17,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NFCReaderUsageDescription": "Scan NFC tags to identify and track assets",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [

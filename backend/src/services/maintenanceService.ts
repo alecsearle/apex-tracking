@@ -2,9 +2,69 @@ import { assetRepository } from "../repositories/assetRepository";
 import { maintenanceRepository } from "../repositories/maintenanceRepository";
 import { sessionRepository } from "../repositories/sessionRepository";
 import { storageService } from "./storageService";
-import { NotFoundError } from "../utils/errors";
+import { ForbiddenError, NotFoundError } from "../utils/errors";
 
 type DueStatus = "on_track" | "due_soon" | "overdue";
+
+/**
+ * Flatten Prisma schedule relations into the shape the frontend expects:
+ * { assetName, createdByName } instead of { asset: { name }, creator: { fullName } }
+ */
+function formatSchedule(
+  schedule: {
+    id: string;
+    assetId: string;
+    businessId: string;
+    createdBy: string;
+    title: string;
+    description: string | null;
+    triggerType: string;
+    intervalHours: number | null;
+    intervalDays: number | null;
+    lastCompletedAt: Date | null;
+    lastCompletedUsageHours: number | null;
+    active: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    asset: { id: string; name: string; purchaseDate?: Date | null };
+    creator: { id: string; fullName: string };
+    dueStatus: DueStatus;
+    dueInfo: string;
+  }
+) {
+  const { asset, creator, ...rest } = schedule;
+  return {
+    ...rest,
+    assetName: asset.name,
+    createdByName: creator.fullName,
+  };
+}
+
+/**
+ * Flatten Prisma log relations into the shape the frontend expects:
+ * { completedByName } instead of { completedByUser: { fullName } }
+ */
+function formatLog(
+  log: {
+    id: string;
+    scheduleId: string;
+    assetId: string;
+    businessId: string;
+    completedBy: string;
+    completedAt: Date;
+    usageHoursAtCompletion: number | null;
+    notes: string | null;
+    createdAt: Date;
+    completedByUser: { id: string; fullName: string };
+    photos: Array<{ id: string; logId: string; photoUrl: string; createdAt: Date }>;
+  }
+) {
+  const { completedByUser, ...rest } = log;
+  return {
+    ...rest,
+    completedByName: completedByUser.fullName,
+  };
+}
 
 /**
  * Calculate due status for a schedule based on ARCHITECTURE.md logic:
@@ -69,9 +129,9 @@ export const maintenanceService = {
       schedules.map(async (schedule) => {
         const { dueStatus, dueInfo } = await calculateDueStatus({
           ...schedule,
-          assetPurchaseDate: null, // purchaseDate not included in findAll for perf
+          assetPurchaseDate: schedule.asset?.purchaseDate || null,
         });
-        return { ...schedule, dueStatus, dueInfo };
+        return formatSchedule({ ...schedule, dueStatus, dueInfo });
       })
     );
 
@@ -87,7 +147,7 @@ export const maintenanceService = {
       assetPurchaseDate: schedule.asset?.purchaseDate || null,
     });
 
-    return { ...schedule, dueStatus, dueInfo };
+    return formatSchedule({ ...schedule, dueStatus, dueInfo });
   },
 
   async createSchedule(
@@ -106,10 +166,16 @@ export const maintenanceService = {
     const asset = await assetRepository.findById(businessId, data.assetId);
     if (!asset) throw new NotFoundError("Asset not found");
 
-    return maintenanceRepository.createSchedule({
+    const schedule = await maintenanceRepository.createSchedule({
       ...data,
       businessId,
       createdBy: userId,
+    });
+
+    return formatSchedule({
+      ...schedule,
+      dueStatus: "on_track" as DueStatus,
+      dueInfo: "Just created",
     });
   },
 
@@ -123,17 +189,29 @@ export const maintenanceService = {
       intervalHours?: number;
       intervalDays?: number;
       active?: boolean;
-    }
+    },
+    userId: string,
+    role: string
   ) {
     const existing = await maintenanceRepository.findScheduleById(businessId, scheduleId);
     if (!existing) throw new NotFoundError("Maintenance schedule not found");
 
+    // Only the creator or an owner can update a schedule
+    if (existing.createdBy !== userId && role !== "owner") {
+      throw new ForbiddenError("Only the schedule creator or business owner can update this schedule");
+    }
+
     return maintenanceRepository.updateSchedule(businessId, scheduleId, data);
   },
 
-  async deleteSchedule(businessId: string, scheduleId: string) {
+  async deleteSchedule(businessId: string, scheduleId: string, userId: string, role: string) {
     const existing = await maintenanceRepository.findScheduleById(businessId, scheduleId);
     if (!existing) throw new NotFoundError("Maintenance schedule not found");
+
+    // Only the creator or an owner can delete a schedule
+    if (existing.createdBy !== userId && role !== "owner") {
+      throw new ForbiddenError("Only the schedule creator or business owner can delete this schedule");
+    }
 
     return maintenanceRepository.deleteSchedule(businessId, scheduleId);
   },
@@ -163,21 +241,21 @@ export const maintenanceService = {
       lastCompletedUsageHours: data.usageHoursAtCompletion,
     });
 
-    return log;
+    return formatLog(log);
   },
 
   async getLogs(businessId: string, scheduleId: string) {
     const schedule = await maintenanceRepository.findScheduleById(businessId, scheduleId);
     if (!schedule) throw new NotFoundError("Maintenance schedule not found");
 
-    return maintenanceRepository.findLogsBySchedule(businessId, scheduleId);
+    const logs = await maintenanceRepository.findLogsBySchedule(businessId, scheduleId);
+    return logs.map((log) => formatLog(log));
   },
 
   async getDueSchedules(businessId: string) {
     const all = await this.getSchedules(businessId);
     return all.filter(
-      (s: { active: boolean; dueStatus: string }) =>
-        s.active && (s.dueStatus === "overdue" || s.dueStatus === "due_soon")
+      (s) => s.active && (s.dueStatus === "overdue" || s.dueStatus === "due_soon")
     );
   },
 

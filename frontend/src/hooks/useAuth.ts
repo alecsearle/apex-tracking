@@ -9,6 +9,7 @@ export function useAuth() {
     businessName,
     businessCode,
     needsOnboarding,
+    profileError,
     refreshProfile,
     completeOnboarding,
   } = useAuthContext();
@@ -21,6 +22,7 @@ export function useAuth() {
     businessName,
     businessCode,
     needsOnboarding,
+    profileError,
     refreshProfile,
     completeOnboarding,
   };

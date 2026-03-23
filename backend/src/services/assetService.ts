@@ -55,7 +55,9 @@ export const assetService = {
     }
   ) {
     await this.getById(businessId, assetId); // throws if not found
-    return assetRepository.update(businessId, assetId, data);
+    const updated = await assetRepository.update(businessId, assetId, data);
+    const totalUsageHours = await sessionRepository.calculateTotalHours(assetId);
+    return { ...updated, totalUsageHours: Math.round(totalUsageHours * 100) / 100 };
   },
 
   async delete(businessId: string, assetId: string) {
@@ -92,7 +94,9 @@ export const assetService = {
     const filePath = storageService.buildPath(businessId, assetId, "photo", ext);
     const publicUrl = await storageService.upload("assets", filePath, file, mimeType);
 
-    return assetRepository.updatePhotoUrl(assetId, publicUrl);
+    const updated = await assetRepository.updatePhotoUrl(assetId, publicUrl);
+    const totalUsageHours = await sessionRepository.calculateTotalHours(assetId);
+    return { ...updated, totalUsageHours: Math.round(totalUsageHours * 100) / 100 };
   },
 
   async deletePhoto(businessId: string, assetId: string) {
@@ -101,7 +105,9 @@ export const assetService = {
       const path = storageService.extractPath(asset.photoUrl, "assets");
       await storageService.delete("assets", path).catch(() => {});
     }
-    return assetRepository.updatePhotoUrl(assetId, null);
+    const updated = await assetRepository.updatePhotoUrl(assetId, null);
+    const totalUsageHours = await sessionRepository.calculateTotalHours(assetId);
+    return { ...updated, totalUsageHours: Math.round(totalUsageHours * 100) / 100 };
   },
 
   async uploadManual(
@@ -121,7 +127,9 @@ export const assetService = {
     const filePath = storageService.buildPath(businessId, assetId, "manual", "pdf");
     const publicUrl = await storageService.upload("assets", filePath, file, mimeType);
 
-    return assetRepository.updateManualUrl(assetId, publicUrl);
+    const updated = await assetRepository.updateManualUrl(assetId, publicUrl);
+    const totalUsageHours = await sessionRepository.calculateTotalHours(assetId);
+    return { ...updated, totalUsageHours: Math.round(totalUsageHours * 100) / 100 };
   },
 
   async deleteManual(businessId: string, assetId: string) {
@@ -130,6 +138,8 @@ export const assetService = {
       const path = storageService.extractPath(asset.manualUrl, "assets");
       await storageService.delete("assets", path).catch(() => {});
     }
-    return assetRepository.updateManualUrl(assetId, null);
+    const updated = await assetRepository.updateManualUrl(assetId, null);
+    const totalUsageHours = await sessionRepository.calculateTotalHours(assetId);
+    return { ...updated, totalUsageHours: Math.round(totalUsageHours * 100) / 100 };
   },
 };

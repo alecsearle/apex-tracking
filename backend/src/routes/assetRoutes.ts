@@ -15,10 +15,11 @@ router.use(authenticate, requireMembership);
 // GET /api/businesses/:businessId/assets
 router.get("/", assetController.getAll);
 
-// POST /api/businesses/:businessId/assets
+// POST /api/businesses/:businessId/assets (owner only)
 router.post(
   "/",
   generalLimiter,
+  authorize("owner"),
   validateRequest(createAssetSchema),
   assetController.create
 );

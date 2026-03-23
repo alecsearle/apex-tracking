@@ -1,8 +1,11 @@
 import { AuthProvider } from "@/src/contexts/AuthContext";
+import Button from "@/src/components/Button";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useColors } from "@/src/styles/globalColors";
 import * as Linking from "expo-linking";
-import { router, Stack } from "expo-router";
-import { useEffect } from "react";
+import { router, useSegments, Stack } from "expo-router";
+import { useEffect, useRef } from "react";
+import { Text, View } from "react-native";
 
 function useDeepLinkHandler() {
   useEffect(() => {
@@ -30,16 +33,72 @@ function useDeepLinkHandler() {
   }, []);
 }
 
+function useProtectedRoute() {
+  const { session, loading, needsOnboarding, profileError } = useAuth();
+  const segments = useSegments();
+  const hasNavigated = useRef(false);
+
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (loading) return;
+
+    // Don't redirect if we have a profile error — the error screen handles it
+    if (profileError) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+    const inTabsGroup = segments[0] === "(tabs)";
+
+    if (!session) {
+      // Not signed in → go to login (only if not already there)
+      if (!inAuthGroup || hasNavigated.current) {
+        router.replace("/(auth)/login");
+      }
+      hasNavigated.current = true;
+    } else if (needsOnboarding) {
+      // Signed in but no business → go to onboarding
+      if (!inAuthGroup || segments[1] !== "onboarding") {
+        router.replace("/(auth)/onboarding");
+      }
+      hasNavigated.current = true;
+    } else {
+      // Signed in with business → go to tabs (only if not already there)
+      if (!inTabsGroup) {
+        router.replace("/(tabs)");
+      }
+      hasNavigated.current = true;
+    }
+  }, [session, loading, needsOnboarding, profileError, segments]);
+}
+
 function RootNavigator() {
-  const { session, loading } = useAuth();
+  const { session, loading, profileError, refreshProfile } = useAuth();
+  const colors = useColors();
   useDeepLinkHandler();
+  useProtectedRoute();
 
   if (loading) return null;
 
+  // Backend unreachable while logged in — show retry
+  if (session && profileError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.backgroundPrimary }}>
+        <Text style={{ color: colors.textHeading, fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
+          Connection Error
+        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: "center", marginBottom: 24 }}>
+          Could not reach the server. Check your connection and try again.
+        </Text>
+        <Button variant="primary" onPress={refreshProfile}>
+          Retry
+        </Button>
+      </View>
+    );
+  }
+
   return (
-    <Stack>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
