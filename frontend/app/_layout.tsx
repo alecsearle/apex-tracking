@@ -4,7 +4,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useColors } from "@/src/styles/globalColors";
 import * as Linking from "expo-linking";
 import { router, useSegments, Stack } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Text, View } from "react-native";
 
 function useDeepLinkHandler() {
@@ -36,7 +36,6 @@ function useDeepLinkHandler() {
 function useProtectedRoute() {
   const { session, loading, needsOnboarding, profileError } = useAuth();
   const segments = useSegments();
-  const hasNavigated = useRef(false);
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -49,23 +48,20 @@ function useProtectedRoute() {
     const inTabsGroup = segments[0] === "(tabs)";
 
     if (!session) {
-      // Not signed in → go to login (only if not already there)
-      if (!inAuthGroup || hasNavigated.current) {
+      // Not signed in → must be in auth group (login/signup), redirect if not
+      if (!inAuthGroup) {
         router.replace("/(auth)/login");
       }
-      hasNavigated.current = true;
     } else if (needsOnboarding) {
-      // Signed in but no business → go to onboarding
+      // Signed in but no business → must be on onboarding
       if (!inAuthGroup || segments[1] !== "onboarding") {
         router.replace("/(auth)/onboarding");
       }
-      hasNavigated.current = true;
     } else {
-      // Signed in with business → go to tabs (only if not already there)
+      // Signed in with business → must be in tabs
       if (!inTabsGroup) {
         router.replace("/(tabs)");
       }
-      hasNavigated.current = true;
     }
   }, [session, loading, needsOnboarding, profileError, segments]);
 }

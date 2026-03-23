@@ -15,7 +15,7 @@ function StatusBadge({ status }: { status: Asset["status"] }) {
 
   const config = {
     available: { text: "Available", color: colors.statusActiveText, bg: colors.statusActiveBg },
-    in_use: { text: "In Use", color: colors.statusActiveText, bg: colors.statusActiveBg },
+    in_use: { text: "In Use", color: colors.statusInUseText, bg: colors.statusInUseBg },
     maintenance: { text: "Maintenance", color: colors.statusWarningText, bg: colors.statusWarningBg },
   }[status];
 

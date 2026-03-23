@@ -5,9 +5,10 @@ import SearchBar from "@/src/components/SearchBar";
 import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
 import { useColors } from "@/src/styles/globalColors";
 import { DueStatus, MaintenanceSchedule } from "@/src/types/maintenance";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { Stack } from "expo-router";
 
 type DueFilter = "all" | DueStatus;
 
@@ -58,8 +59,14 @@ function ScheduleCard({ schedule, onPress }: { schedule: MaintenanceSchedule; on
 export default function MaintenanceScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { schedules, overdue, dueSoon, onTrack } = useMaintenanceSchedules();
+  const { schedules, overdue, dueSoon, onTrack, refetch } = useMaintenanceSchedules();
   const [search, setSearch] = useState("");
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
   const [dueFilter, setDueFilter] = useState<DueFilter>("all");
 
   const isFiltering = search.trim().length > 0 || dueFilter !== "all";
@@ -91,6 +98,25 @@ export default function MaintenanceScreen() {
 
   return (
     <View style={containerStyle}>
+      <Stack.Screen
+        options={{
+          title: "Maintenance",
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("/maintenance/new")}
+              hitSlop={8}
+            >
+              <Icon
+                name="add"
+                iosName="plus"
+                androidName="add"
+                size={22}
+                color={colors.brandPrimary}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={contentStyle}>
         <View style={{ gap: 12, marginBottom: 16 }}>
           <SearchBar

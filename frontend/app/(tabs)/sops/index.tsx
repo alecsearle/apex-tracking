@@ -5,9 +5,11 @@ import SearchBar from "@/src/components/SearchBar";
 import { useSOPs } from "@/src/hooks/useSOPs";
 import { useColors } from "@/src/styles/globalColors";
 import { Sop } from "@/src/types/sop";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { Stack } from "expo-router";
+import { useAuth } from "@/src/hooks/useAuth";
 
 type ScopeFilter = "all" | "business_wide" | "per_asset";
 
@@ -58,7 +60,14 @@ function SOPCard({ sop, onPress }: { sop: Sop; onPress: () => void }) {
 export default function SOPsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { sops } = useSOPs();
+  const { sops, refetch } = useSOPs();
+  const { role } = useAuth();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
   const [search, setSearch] = useState("");
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
 
@@ -92,6 +101,27 @@ export default function SOPsScreen() {
 
   return (
     <View style={containerStyle}>
+      <Stack.Screen
+        options={{
+          title: "SOPs",
+          headerRight: role === "owner"
+            ? () => (
+                <Pressable
+                  onPress={() => router.push("/sops/new")}
+                  hitSlop={8}
+                >
+                  <Icon
+                    name="add"
+                    iosName="plus"
+                    androidName="add"
+                    size={22}
+                    color={colors.brandPrimary}
+                  />
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       <ScrollView contentContainerStyle={contentStyle}>
         <View style={{ gap: 12, marginBottom: 16 }}>
           <SearchBar

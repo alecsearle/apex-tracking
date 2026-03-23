@@ -27,6 +27,8 @@ export const lightColors = {
   // Status colors
   statusActiveText: "#7CB342",
   statusActiveBg: "#F1F8E9",
+  statusInUseText: "#42A5F5",
+  statusInUseBg: "#E3F2FD",
   statusWarningText: "#FFA726",
   statusWarningBg: "#FFF8E1",
   statusErrorText: "#E57373",
@@ -60,6 +62,8 @@ export const darkColors = {
   // Status colors (for tool sessions/maintenance)
   statusActiveText: "#A5D6A7",
   statusActiveBg: "#1B5E20",
+  statusInUseText: "#90CAF9",
+  statusInUseBg: "#0D47A1",
   statusWarningText: "#FFCC80",
   statusWarningBg: "#E65100",
   statusErrorText: "#EF9A9A",

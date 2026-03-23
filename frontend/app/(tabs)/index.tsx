@@ -9,8 +9,8 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useMaintenanceSchedules } from "@/src/hooks/useMaintenanceSchedules";
 import { useColors } from "@/src/styles/globalColors";
 import { UsageSession } from "@/src/types/session";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Alert, Animated, ScrollView, Text, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native";
 
@@ -44,7 +44,7 @@ function SessionCard({ session }: { session: UsageSession }) {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.statusActiveText,
+    backgroundColor: colors.statusInUseText,
     marginRight: 12,
   };
   const info: ViewStyle = { flex: 1 };
@@ -61,8 +61,8 @@ function SessionCard({ session }: { session: UsageSession }) {
             {session.startedByName} · {formatDuration(session.startedAt)}
           </Text>
         </View>
-        <View style={{ backgroundColor: colors.statusActiveBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", color: colors.statusActiveText }}>Active</Text>
+        <View style={{ backgroundColor: colors.statusInUseBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: colors.statusInUseText }}>Active</Text>
         </View>
       </View>
     </Card>
@@ -72,11 +72,19 @@ function SessionCard({ session }: { session: UsageSession }) {
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { assets } = useAssets();
-  const { sessions } = useSessions();
+  const { assets, refetch: refetchAssets } = useAssets();
+  const { sessions, refetch: refetchSessions } = useSessions();
   const { readTag, parseUri, isSupported: nfcSupported } = useNfc();
   const { businessName, session } = useAuth();
-  const { overdue, dueSoon } = useMaintenanceSchedules();
+  const { overdue, dueSoon, refetch: refetchMaintenance } = useMaintenanceSchedules();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchAssets();
+      refetchSessions();
+      refetchMaintenance();
+    }, [refetchAssets, refetchSessions, refetchMaintenance]),
+  );
 
   const handleQuickScan = async () => {
     try {
@@ -139,7 +147,7 @@ export default function HomeScreen() {
             <Text style={statLabel}>Total Assets</Text>
           </Card>
           <Card variant="elevated" padding="none" style={statCard}>
-            <Text style={[statNumber, inUseCount > 0 && { color: colors.statusActiveText }]}>{inUseCount}</Text>
+            <Text style={[statNumber, inUseCount > 0 && { color: colors.statusInUseText }]}>{inUseCount}</Text>
             <Text style={statLabel}>In Use</Text>
           </Card>
           <Card variant="elevated" padding="none" style={statCard}>

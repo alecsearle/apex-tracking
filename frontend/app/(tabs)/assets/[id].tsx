@@ -40,7 +40,7 @@ function StatusBadge({ status }: { status: string }) {
   const colors = useColors();
   const config = {
     available: { text: "Available", color: colors.statusActiveText, bg: colors.statusActiveBg },
-    in_use: { text: "In Use", color: colors.statusActiveText, bg: colors.statusActiveBg },
+    in_use: { text: "In Use", color: colors.statusInUseText, bg: colors.statusInUseBg },
     maintenance: { text: "Maintenance", color: colors.statusWarningText, bg: colors.statusWarningBg },
   }[status] ?? { text: status, color: colors.textSecondary, bg: colors.divider };
 
@@ -310,7 +310,7 @@ export default function AssetDetailScreen() {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View style={{
                   width: 10, height: 10, borderRadius: 5,
-                  backgroundColor: isPaused ? colors.statusWarningText : colors.statusActiveText,
+                  backgroundColor: isPaused ? colors.statusWarningText : colors.statusInUseText,
                   marginRight: 12,
                 }} />
                 <View style={{ flex: 1 }}>
