@@ -15,10 +15,10 @@ import { reportService } from "@/src/services/reportService";
 import { assetService } from "@/src/services/assetService";
 import { useColors } from "@/src/styles/globalColors";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
-import { ReportSeverity } from "@/src/types/report";
+import { MaintenanceReport, ReportSeverity } from "@/src/types/report";
 import { UsageSession } from "@/src/types/session";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
 
 function DueBadge({ status, info }: { status: MaintenanceSchedule["dueStatus"]; info: string }) {
@@ -69,6 +69,133 @@ function getEffectivePausedMs(session: UsageSession): number {
     total += Date.now() - new Date(session.pausedAt).getTime();
   }
   return total;
+}
+
+function SeverityBadge({ severity }: { severity: ReportSeverity }) {
+  const colors = useColors();
+  const config = {
+    low: { text: "Low", color: colors.statusActiveText, bg: colors.statusActiveBg },
+    medium: { text: "Medium", color: colors.statusWarningText, bg: colors.statusWarningBg },
+    high: { text: "High", color: colors.statusErrorText, bg: colors.statusErrorBg },
+    critical: { text: "Critical", color: colors.statusErrorText, bg: colors.statusErrorBg },
+  }[severity];
+
+  return (
+    <View style={{ backgroundColor: config.bg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+      <Text style={{ fontSize: 11, fontWeight: "600", color: config.color }}>{config.text}</Text>
+    </View>
+  );
+}
+
+function SessionHistoryItem({
+  session,
+  businessId,
+  detailRow,
+}: {
+  session: UsageSession;
+  businessId: string | undefined;
+  detailRow: ViewStyle;
+}) {
+  const colors = useColors();
+  const [expanded, setExpanded] = useState(false);
+  const [reports, setReports] = useState<MaintenanceReport[]>([]);
+  const [reportsLoaded, setReportsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (expanded && !reportsLoaded && businessId) {
+      reportService
+        .getAll(businessId, { assetId: session.assetId })
+        .then((all) => setReports(all.filter((r) => r.sessionId === session.id)))
+        .catch(() => {})
+        .finally(() => setReportsLoaded(true));
+    }
+  }, [expanded, reportsLoaded, businessId, session.assetId, session.id]);
+
+  const hasDetails = session.jobSiteName || session.notes;
+
+  return (
+    <Pressable onPress={() => setExpanded((prev) => !prev)}>
+      <View style={[detailRow, { flexDirection: "column", alignItems: "stretch" }]}>
+        {/* Summary row */}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: colors.textHeading }}>
+              {session.startedByName}
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
+              {new Date(session.startedAt).toLocaleDateString()}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.brandPrimary, marginRight: 8 }}>
+            {formatDuration(session.startedAt, session.endedAt, session.totalPausedMs)}
+          </Text>
+          <Icon
+            name={expanded ? "expand-less" : "expand-more"}
+            iosName={expanded ? "chevron.up" : "chevron.down"}
+            androidName={expanded ? "expand-less" : "expand-more"}
+            size={16}
+            color={colors.textMuted}
+          />
+        </View>
+
+        {/* Expanded details */}
+        {expanded && (
+          <View style={{ marginTop: 12, gap: 8 }}>
+            {session.jobSiteName && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name="location-on" iosName="mappin" androidName="location-on" size={16} color={colors.textSecondary} />
+                <Text style={{ fontSize: 14, color: colors.textPrimary }}>{session.jobSiteName}</Text>
+              </View>
+            )}
+            {session.notes && (
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                <Icon name="notes" iosName="note.text" androidName="notes" size={16} color={colors.textSecondary} style={{ marginTop: 2 }} />
+                <Text style={{ fontSize: 14, color: colors.textPrimary, flex: 1 }}>{session.notes}</Text>
+              </View>
+            )}
+            {session.endedByName && session.endedByName !== session.startedByName && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name="person" iosName="person.fill" androidName="person" size={16} color={colors.textSecondary} />
+                <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                  Ended by {session.endedByName}
+                </Text>
+              </View>
+            )}
+
+            {/* Linked reports */}
+            {reports.length > 0 && (
+              <View style={{
+                marginTop: 4,
+                backgroundColor: colors.backgroundPrimary,
+                borderRadius: 8,
+                padding: 12,
+                gap: 8,
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Reports Filed
+                </Text>
+                {reports.map((report) => (
+                  <View key={report.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Icon name="report" iosName="exclamationmark.triangle.fill" androidName="report" size={16} color={colors.statusWarningText} />
+                    <Text style={{ fontSize: 14, fontWeight: "500", color: colors.textPrimary, flex: 1 }}>
+                      {report.title}
+                    </Text>
+                    <SeverityBadge severity={report.severity} />
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {!hasDetails && reports.length === 0 && reportsLoaded && (
+              <Text style={{ fontSize: 13, color: colors.textMuted, fontStyle: "italic" }}>
+                No additional details recorded
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
 }
 
 export default function AssetDetailScreen() {
@@ -400,22 +527,13 @@ export default function AssetDetailScreen() {
                   {completedSessions.map((session, index) => (
                     <View
                       key={session.id}
-                      style={[
-                        detailRow,
-                        index === completedSessions.length - 1 && { borderBottomWidth: 0 },
-                      ]}
+                      style={index === completedSessions.length - 1 ? {} : { borderBottomWidth: 0.5, borderBottomColor: colors.divider }}
                     >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 15, fontWeight: "600", color: colors.textHeading }}>
-                          {session.startedByName}
-                        </Text>
-                        <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
-                          {new Date(session.startedAt).toLocaleDateString()}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 14, fontWeight: "600", color: colors.brandPrimary }}>
-                        {formatDuration(session.startedAt, session.endedAt, session.totalPausedMs)}
-                      </Text>
+                      <SessionHistoryItem
+                        session={session}
+                        businessId={businessId}
+                        detailRow={detailRow}
+                      />
                     </View>
                   ))}
                 </View>

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { assetService } from "../services/assetService";
+import { ValidationError } from "../utils/errors";
 import { param } from "../utils/params";
 
 export const assetController = {
@@ -40,12 +41,12 @@ export const assetController = {
   },
 
   async uploadPhoto(req: Request, res: Response): Promise<void> {
-    const file = req.file!;
+    if (!req.file) throw new ValidationError("No photo file provided");
     const asset = await assetService.uploadPhoto(
       req.membership!.businessId,
       param(req.params.id),
-      file.buffer,
-      file.mimetype
+      req.file.buffer,
+      req.file.mimetype
     );
     res.json(asset);
   },
@@ -56,12 +57,12 @@ export const assetController = {
   },
 
   async uploadManual(req: Request, res: Response): Promise<void> {
-    const file = req.file!;
+    if (!req.file) throw new ValidationError("No PDF file provided");
     const asset = await assetService.uploadManual(
       req.membership!.businessId,
       param(req.params.id),
-      file.buffer,
-      file.mimetype
+      req.file.buffer,
+      req.file.mimetype
     );
     res.json(asset);
   },

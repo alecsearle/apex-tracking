@@ -25,6 +25,7 @@ export default function MaintenanceLayout() {
       <Stack.Screen name="[id]" options={{ title: "Schedule Details" }} />
       <Stack.Screen name="new" options={{ title: "New Schedule" }} />
       <Stack.Screen name="complete/[id]" options={{ title: "Complete Maintenance" }} />
+      <Stack.Screen name="report/[id]" options={{ title: "Report Details" }} />
     </Stack>
   );
 }

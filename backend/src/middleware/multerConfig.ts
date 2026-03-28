@@ -23,11 +23,11 @@ export const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: imageFilter,
-}).single("file");
+}).single("photo");
 
 /** PDF upload — max 20MB, PDF only */
 export const uploadPdf = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: pdfFilter,
-}).single("file");
+}).single("manual");
