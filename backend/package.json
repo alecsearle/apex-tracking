@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
