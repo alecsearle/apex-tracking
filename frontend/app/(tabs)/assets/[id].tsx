@@ -149,7 +149,7 @@ function SessionHistoryItem({
             )}
             {session.notes && (
               <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-                <Icon name="notes" iosName="note.text" androidName="notes" size={16} color={colors.textSecondary} style={{ marginTop: 2 }} />
+                <View style={{ marginTop: 2 }}><Icon name="notes" iosName="note.text" androidName="notes" size={16} color={colors.textSecondary} /></View>
                 <Text style={{ fontSize: 14, color: colors.textPrimary, flex: 1 }}>{session.notes}</Text>
               </View>
             )}
@@ -531,7 +531,7 @@ export default function AssetDetailScreen() {
                     >
                       <SessionHistoryItem
                         session={session}
-                        businessId={businessId}
+                        businessId={businessId ?? undefined}
                         detailRow={detailRow}
                       />
                     </View>

@@ -10,8 +10,11 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS — configure for frontend origin in production
-app.use(cors({ origin: "*" }));
+// CORS — allow mobile app and local dev
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 
 // Body parsing
 app.use(express.json({ limit: "10mb" }));
