@@ -97,7 +97,7 @@
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       "expo-web-browser",
-      "react-native-nfc-manager"
+      ["react-native-nfc-manager", { "includeNdefEntitlement": false }]
     ],
     "experiments": {
       "typedRoutes": true,
