@@ -15,6 +15,13 @@ export const userRepository = {
    * (e.g. user deleted their account and re-signed up), delete the stale record
    * and create a fresh one. Cascade deletes clean up orphaned memberships.
    */
+  async updateAvatarUrl(id: string, avatarUrl: string | null) {
+    return prisma.user.update({
+      where: { id },
+      data: { avatarUrl },
+    });
+  },
+
   async upsert(data: { id: string; email: string; fullName?: string; avatarUrl?: string }) {
     try {
       return await prisma.user.upsert({

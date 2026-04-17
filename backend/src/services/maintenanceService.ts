@@ -225,6 +225,12 @@ export const maintenanceService = {
     const schedule = await maintenanceRepository.findScheduleById(businessId, scheduleId);
     if (!schedule) throw new NotFoundError("Maintenance schedule not found");
 
+    // For usage-hours schedules, auto-fetch the asset's current total hours if not provided
+    let usageHours = data.usageHoursAtCompletion;
+    if (usageHours == null && schedule.triggerType === "usage_hours") {
+      usageHours = await sessionRepository.calculateTotalHours(schedule.assetId);
+    }
+
     // Create completion log
     const log = await maintenanceRepository.createLog({
       scheduleId,
@@ -232,13 +238,13 @@ export const maintenanceService = {
       businessId,
       completedBy: userId,
       notes: data.notes,
-      usageHoursAtCompletion: data.usageHoursAtCompletion,
+      usageHoursAtCompletion: usageHours,
     });
 
     // Update schedule with last completed info
     await maintenanceRepository.updateSchedule(businessId, scheduleId, {
       lastCompletedAt: new Date(),
-      lastCompletedUsageHours: data.usageHoursAtCompletion,
+      lastCompletedUsageHours: usageHours,
     });
 
     return formatLog(log);

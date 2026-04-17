@@ -3,12 +3,59 @@ import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
 import { useMembers } from "@/src/hooks/useMembers";
 import { useAuth } from "@/src/hooks/useAuth";
+import { businessService } from "@/src/services/businessService";
+import { apiUpload } from "@/src/services/api";
 import { useColors } from "@/src/styles/globalColors";
 import { Membership } from "@/src/types/business";
 import { supabase } from "@/lib/supabase";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
 
-function MemberRow({ member }: { member: Membership }) {
+function Avatar({
+  uri,
+  fallback,
+  size,
+  colors,
+}: {
+  uri?: string | null;
+  fallback: string;
+  size: number;
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        contentFit="cover"
+      />
+    );
+  }
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2, backgroundColor: colors.brandLight,
+      justifyContent: "center", alignItems: "center",
+    }}>
+      <Text style={{ fontSize: size * 0.43, fontWeight: "700", color: colors.brandPrimary }}>
+        {fallback.charAt(0).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+function MemberRow({
+  member,
+  isOwner,
+  isSelf,
+  onRemove,
+}: {
+  member: Membership;
+  isOwner: boolean;
+  isSelf: boolean;
+  onRemove?: () => void;
+}) {
   const colors = useColors();
 
   return (
@@ -16,15 +63,8 @@ function MemberRow({ member }: { member: Membership }) {
       flexDirection: "row", alignItems: "center", paddingVertical: 12,
       borderBottomWidth: 0.5, borderBottomColor: colors.divider,
     }}>
-      <View style={{
-        width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brandLight,
-        justifyContent: "center", alignItems: "center", marginRight: 12,
-      }}>
-        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.brandPrimary }}>
-          {member.user.fullName.charAt(0)}
-        </Text>
-      </View>
-      <View style={{ flex: 1 }}>
+      <Avatar uri={member.user.avatarUrl} fallback={member.user.fullName} size={40} colors={colors} />
+      <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={{ fontSize: 15, fontWeight: "600", color: colors.textHeading }}>
           {member.user.fullName}
         </Text>
@@ -44,14 +84,24 @@ function MemberRow({ member }: { member: Membership }) {
           {member.role}
         </Text>
       </View>
+      {isOwner && !isSelf && member.role !== "owner" && (
+        <Pressable
+          onPress={onRemove}
+          hitSlop={8}
+          style={{ marginLeft: 10 }}
+        >
+          <Icon name="remove-circle-outline" iosName="minus.circle" androidName="remove-circle-outline" size={22} color={colors.statusErrorText} />
+        </Pressable>
+      )}
     </View>
   );
 }
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { members } = useMembers();
-  const { session, businessName, businessCode, role } = useAuth();
+  const { members, refetch: refetchMembers } = useMembers();
+  const { session, businessId, businessName, businessCode, role, avatarUrl, refreshProfile } = useAuth();
+  const [uploading, setUploading] = useState(false);
 
   const currentUser = {
     fullName: session?.user?.user_metadata?.full_name ?? "User",
@@ -71,8 +121,67 @@ export default function SettingsScreen() {
   const labelStyle: TextStyle = { fontSize: 15, color: colors.textSecondary };
   const valueStyle: TextStyle = { fontSize: 15, fontWeight: "600", color: colors.textPrimary };
 
+  async function handlePickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow photo library access to set a profile picture.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets.length) return;
+
+    const asset = result.assets[0];
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      const ext = asset.uri.split(".").pop() || "jpg";
+      formData.append("photo", {
+        uri: asset.uri,
+        name: `avatar.${ext}`,
+        type: asset.mimeType || "image/jpeg",
+      } as any);
+
+      await apiUpload("/auth/avatar", formData);
+      await refreshProfile();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to upload profile picture.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function handleCopyCode() {
     Alert.alert("Business Code", businessCode ?? "", [{ text: "OK" }]);
+  }
+
+  function handleRemoveMember(member: Membership) {
+    Alert.alert(
+      "Remove Member",
+      `Are you sure you want to remove ${member.user.fullName} from this business?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (!businessId) return;
+            try {
+              await businessService.removeMember(businessId, member.userId);
+              refetchMembers();
+            } catch (e: any) {
+              Alert.alert("Error", e.message || "Failed to remove member.");
+            }
+          },
+        },
+      ]
+    );
   }
 
   async function handleSignOut() {
@@ -100,15 +209,21 @@ export default function SettingsScreen() {
         <Card variant="elevated" padding="none">
           <View style={{ paddingHorizontal: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 16 }}>
-              <View style={{
-                width: 56, height: 56, borderRadius: 28, backgroundColor: colors.brandLight,
-                justifyContent: "center", alignItems: "center", marginRight: 14,
-              }}>
-                <Text style={{ fontSize: 24, fontWeight: "700", color: colors.brandPrimary }}>
-                  {currentUser.fullName.charAt(0)}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
+              <Pressable onPress={handlePickAvatar} disabled={uploading}>
+                <View>
+                  <Avatar uri={avatarUrl} fallback={currentUser.fullName} size={56} colors={colors} />
+                  <View style={{
+                    position: "absolute", bottom: -2, right: -2,
+                    width: 22, height: 22, borderRadius: 11,
+                    backgroundColor: colors.brandPrimary,
+                    justifyContent: "center", alignItems: "center",
+                    borderWidth: 2, borderColor: colors.backgroundCard,
+                  }}>
+                    <Icon name="camera-alt" iosName="camera.fill" androidName="camera-alt" size={12} color="#FFFFFF" />
+                  </View>
+                </View>
+              </Pressable>
+              <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={{ fontSize: 18, fontWeight: "700", color: colors.textHeading }}>
                   {currentUser.fullName}
                 </Text>
@@ -154,7 +269,12 @@ export default function SettingsScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             {members.map((member, idx) => (
               <View key={member.id} style={idx === members.length - 1 ? { borderBottomWidth: 0 } : {}}>
-                <MemberRow member={member} />
+                <MemberRow
+                  member={member}
+                  isOwner={role === "owner"}
+                  isSelf={member.userId === session?.user?.id}
+                  onRemove={() => handleRemoveMember(member)}
+                />
               </View>
             ))}
           </View>

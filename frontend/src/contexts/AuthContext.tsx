@@ -4,7 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 interface MeResponse {
-  user: { id: string; email: string };
+  user: { id: string; email: string; avatarUrl?: string | null };
   membership: { businessId: string; role: "owner" | "employee" } | null;
   business: { id: string; name: string; businessCode: string } | null;
 }
@@ -17,6 +17,7 @@ interface AuthContextValue {
   role: "owner" | "employee" | null;
   businessName: string | null;
   businessCode: string | null;
+  avatarUrl: string | null;
   needsOnboarding: boolean;
   /** True if /auth/me failed (network error, backend down) — user should retry, not onboard */
   profileError: boolean;
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<"owner" | "employee" | null>(null);
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [businessCode, setBusinessCode] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isDevSession, setIsDevSession] = useState(false);
   const [profileError, setProfileError] = useState(false);
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setProfileError(false);
       const me = await apiRequest<MeResponse>("/auth/me");
+      setAvatarUrl(me.user.avatarUrl ?? null);
       if (me.membership) {
         setBusinessId(me.membership.businessId);
         setRole(me.membership.role);
@@ -125,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole(null);
         setBusinessName(null);
         setBusinessCode(null);
+        setAvatarUrl(null);
         setNeedsOnboarding(false);
         setProfileError(false);
       }
@@ -167,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role,
         businessName,
         businessCode,
+        avatarUrl,
         needsOnboarding,
         profileError,
         refreshProfile: fetchProfile,
