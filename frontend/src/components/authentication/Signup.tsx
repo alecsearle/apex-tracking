@@ -17,14 +17,23 @@ import {
 } from "react-native";
 
 export default function Signup() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const colors = useColors();
 
   async function signUp() {
+    if (!fullName.trim()) {
+      Alert.alert("Error", "Please enter your name.");
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName.trim() } },
+    });
     if (error) Alert.alert("Error", error.message);
     setLoading(false);
   }
@@ -42,6 +51,13 @@ export default function Signup() {
         <Text style={[styles.title, { color: colors.textHeading }]}>Sign Up</Text>
 
         <View style={styles.form}>
+          <TextInput
+            label="Full Name"
+            placeholder="Enter your name"
+            value={fullName}
+            onChangeText={setFullName}
+          />
+
           <TextInput
             label="Email Address"
             placeholder="Enter your email"

@@ -39,6 +39,24 @@ export const authController = {
    * POST /api/auth/avatar
    * Upload a profile picture for the authenticated user.
    */
+  /**
+   * PUT /api/auth/profile
+   * Update the authenticated user's profile (currently just fullName).
+   */
+  async updateProfile(req: Request, res: Response): Promise<void> {
+    const user = req.user!;
+    const { fullName } = req.body;
+
+    if (!fullName || typeof fullName !== "string" || !fullName.trim()) {
+      throw new ValidationError("Full name is required");
+    }
+
+    const trimmed = fullName.trim().slice(0, 100);
+    const updated = await userRepository.updateFullName(user.id, trimmed);
+
+    res.json({ id: updated.id, fullName: updated.fullName });
+  },
+
   async uploadAvatar(req: Request, res: Response): Promise<void> {
     const user = req.user!;
     if (!req.file) {

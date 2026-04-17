@@ -4,14 +4,14 @@ import Icon from "@/src/components/Icon";
 import { useMembers } from "@/src/hooks/useMembers";
 import { useAuth } from "@/src/hooks/useAuth";
 import { businessService } from "@/src/services/businessService";
-import { apiUpload } from "@/src/services/api";
+import { apiRequest, apiUpload } from "@/src/services/api";
 import { useColors } from "@/src/styles/globalColors";
 import { Membership } from "@/src/types/business";
 import { supabase } from "@/lib/supabase";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput as RNTextInput, TextStyle, View, ViewStyle } from "react-native";
 
 function Avatar({
   uri,
@@ -102,9 +102,12 @@ export default function SettingsScreen() {
   const { members, refetch: refetchMembers } = useMembers();
   const { session, businessId, businessName, businessCode, role, avatarUrl, refreshProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
 
+  const currentMember = members.find((m) => m.userId === session?.user?.id);
   const currentUser = {
-    fullName: session?.user?.user_metadata?.full_name ?? "User",
+    fullName: currentMember?.user.fullName ?? session?.user?.user_metadata?.full_name ?? "User",
     email: session?.user?.email ?? "",
   };
 
@@ -154,6 +157,29 @@ export default function SettingsScreen() {
       Alert.alert("Error", e.message || "Failed to upload profile picture.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  function handleEditName() {
+    setNameInput(currentUser.fullName);
+    setEditingName(true);
+  }
+
+  async function handleSaveName() {
+    if (!nameInput.trim()) {
+      Alert.alert("Error", "Name cannot be empty.");
+      return;
+    }
+    try {
+      await apiRequest("/auth/profile", {
+        method: "PUT",
+        body: { fullName: nameInput.trim() },
+      });
+      setEditingName(false);
+      await refreshProfile();
+      refetchMembers();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to update name.");
     }
   }
 
@@ -224,9 +250,35 @@ export default function SettingsScreen() {
                 </View>
               </Pressable>
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: colors.textHeading }}>
-                  {currentUser.fullName}
-                </Text>
+                {editingName ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <RNTextInput
+                      value={nameInput}
+                      onChangeText={setNameInput}
+                      autoFocus
+                      style={{
+                        flex: 1, fontSize: 18, fontWeight: "700", color: colors.textHeading,
+                        borderBottomWidth: 1.5, borderBottomColor: colors.brandPrimary,
+                        paddingVertical: 4,
+                      }}
+                      onSubmitEditing={handleSaveName}
+                      returnKeyType="done"
+                    />
+                    <Pressable onPress={handleSaveName} hitSlop={8}>
+                      <Icon name="check" iosName="checkmark" androidName="check" size={22} color={colors.brandPrimary} />
+                    </Pressable>
+                    <Pressable onPress={() => setEditingName(false)} hitSlop={8}>
+                      <Icon name="close" iosName="xmark" androidName="close" size={22} color={colors.textSecondary} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable onPress={handleEditName} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: colors.textHeading }}>
+                      {currentUser.fullName}
+                    </Text>
+                    <Icon name="edit" iosName="pencil" androidName="edit" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                )}
                 <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 2 }}>
                   {currentUser.email}
                 </Text>

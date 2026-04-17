@@ -12,6 +12,9 @@ router.post("/sync", authLimiter, authController.syncUser);
 // GET /api/auth/me — returns user profile + membership (requires auth)
 router.get("/me", authenticate, authController.getMe);
 
+// PUT /api/auth/profile — update user profile (name)
+router.put("/profile", authenticate, authController.updateProfile);
+
 // POST /api/auth/avatar — upload profile picture
 router.post("/avatar", authenticate, uploadImage, authController.uploadAvatar);
 
