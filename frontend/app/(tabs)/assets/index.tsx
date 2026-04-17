@@ -84,6 +84,7 @@ export default function AssetsScreen() {
             <Pressable
               onPress={() => router.push("/assets/new")}
               hitSlop={8}
+              style={{ minWidth: 36, minHeight: 36, alignItems: "center", justifyContent: "center" }}
             >
               <Icon
                 name="add"

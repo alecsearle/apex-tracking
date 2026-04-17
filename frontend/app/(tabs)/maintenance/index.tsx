@@ -227,6 +227,7 @@ export default function MaintenanceScreen() {
             <Pressable
               onPress={() => router.push("/maintenance/new")}
               hitSlop={8}
+              style={{ minWidth: 36, minHeight: 36, alignItems: "center", justifyContent: "center" }}
             >
               <Icon
                 name="add"

@@ -109,6 +109,7 @@ export default function SOPsScreen() {
                 <Pressable
                   onPress={() => router.push("/sops/new")}
                   hitSlop={8}
+                  style={{ minWidth: 36, minHeight: 36, alignItems: "center", justifyContent: "center" }}
                 >
                   <Icon
                     name="add"
