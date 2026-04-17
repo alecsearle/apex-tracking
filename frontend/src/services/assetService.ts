@@ -26,12 +26,18 @@ export const assetService = {
       method: "DELETE",
     }),
 
-  uploadPhoto: async (businessId: string, id: string, fileUri: string, fileName: string) => {
+  uploadPhoto: async (
+    businessId: string,
+    id: string,
+    fileUri: string,
+    fileName: string,
+    mimeType?: string
+  ) => {
     const formData = new FormData();
     formData.append("photo", {
       uri: fileUri,
       name: fileName,
-      type: "image/jpeg",
+      type: mimeType || "image/jpeg",
     } as any);
     return apiUpload<Asset>(`/businesses/${businessId}/assets/${id}/photo`, formData);
   },

@@ -1,4 +1,4 @@
-import AssetForm, { SelectedFile } from "@/src/components/AssetForm";
+import AssetForm, { PhotoChange, SelectedFile } from "@/src/components/AssetForm";
 import { useAuth } from "@/src/hooks/useAuth";
 import { assetService } from "@/src/services/assetService";
 import { CreateAssetDTO } from "@/src/types/asset";
@@ -9,13 +9,22 @@ export default function NewAssetScreen() {
   const router = useRouter();
   const { businessId } = useAuth();
 
-  const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile) => {
+  const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile, photo?: PhotoChange) => {
     if (!businessId) {
       Alert.alert("Error", "No business found. Please log in again.");
       return;
     }
 
     const asset = await assetService.create(businessId, data);
+
+    // Upload photo if provided (null/undefined means nothing to do on create)
+    if (photo && asset.id) {
+      try {
+        await assetService.uploadPhoto(businessId, asset.id, photo.uri, photo.name, photo.mimeType);
+      } catch {
+        Alert.alert("Note", "Asset created but photo upload failed. You can retry from the asset details.");
+      }
+    }
 
     // Upload manual PDF if provided
     if (file && asset.id) {

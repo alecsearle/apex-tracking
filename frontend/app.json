@@ -97,7 +97,14 @@
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       "expo-web-browser",
-      ["react-native-nfc-manager", { "includeNdefEntitlement": false }]
+      ["react-native-nfc-manager", { "includeNdefEntitlement": false }],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photo library to attach photos to assets and your profile.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to take photos of assets."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

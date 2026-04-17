@@ -1,5 +1,6 @@
 import { useColors } from "@/src/styles/globalColors";
 import { Asset } from "@/src/types/asset";
+import { Image } from "expo-image";
 import React from "react";
 import { Text, TextStyle, View, ViewStyle } from "react-native";
 import Card from "./Card";
@@ -44,9 +45,17 @@ const AssetListItem = ({ asset, onPress }: AssetListItemProps) => {
   return (
     <Card variant="elevated" padding="medium" onPress={onPress}>
       <View style={rowStyle}>
-        <View style={accentStyle}>
-          <Icon name="build" iosName="wrench.fill" androidName="build" size={20} color={colors.brandPrimary} />
-        </View>
+        {asset.photoUrl ? (
+          <Image
+            source={{ uri: asset.photoUrl }}
+            style={{ width: 40, height: 40, borderRadius: 10, marginRight: 14 }}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={accentStyle}>
+            <Icon name="build" iosName="wrench.fill" androidName="build" size={20} color={colors.brandPrimary} />
+          </View>
+        )}
         <View style={contentStyle}>
           <Text style={nameStyle}>{asset.name}</Text>
           <Text style={subtitleStyle}>{asset.brand} · {asset.model}</Text>

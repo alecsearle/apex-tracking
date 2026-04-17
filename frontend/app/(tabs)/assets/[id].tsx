@@ -17,6 +17,7 @@ import { useColors } from "@/src/styles/globalColors";
 import { MaintenanceSchedule } from "@/src/types/maintenance";
 import { MaintenanceReport, ReportSeverity } from "@/src/types/report";
 import { UsageSession } from "@/src/types/session";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
@@ -383,12 +384,20 @@ export default function AssetDetailScreen() {
         {/* Header */}
         <Card variant="elevated" padding="large">
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{
-              width: 56, height: 56, borderRadius: 14, backgroundColor: colors.brandLight,
-              justifyContent: "center", alignItems: "center", marginRight: 16,
-            }}>
-              <Icon name="build" iosName="wrench.fill" androidName="build" size={28} color={colors.brandPrimary} />
-            </View>
+            {asset.photoUrl ? (
+              <Image
+                source={{ uri: asset.photoUrl }}
+                style={{ width: 56, height: 56, borderRadius: 14, marginRight: 16 }}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={{
+                width: 56, height: 56, borderRadius: 14, backgroundColor: colors.brandLight,
+                justifyContent: "center", alignItems: "center", marginRight: 16,
+              }}>
+                <Icon name="build" iosName="wrench.fill" androidName="build" size={28} color={colors.brandPrimary} />
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: "800", color: colors.textHeading, letterSpacing: -0.5 }}>
                 {asset.name}

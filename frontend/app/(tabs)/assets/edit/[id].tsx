@@ -1,4 +1,4 @@
-import AssetForm, { SelectedFile } from "@/src/components/AssetForm";
+import AssetForm, { PhotoChange, SelectedFile } from "@/src/components/AssetForm";
 import ErrorMessage from "@/src/components/ErrorMessage";
 import LoadingIndicator from "@/src/components/LoadingIndicator";
 import { useAsset } from "@/src/hooks/useAsset";
@@ -18,7 +18,7 @@ export default function EditAssetScreen() {
   if (error) return <ErrorMessage message={error} />;
   if (!asset) return <ErrorMessage message="Asset not found" />;
 
-  const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile) => {
+  const handleSubmit = async (data: CreateAssetDTO, file?: SelectedFile, photo?: PhotoChange) => {
     if (!businessId) {
       Alert.alert("Error", "No business found. Please log in again.");
       return;
@@ -26,6 +26,21 @@ export default function EditAssetScreen() {
 
     try {
       await assetService.update(businessId, id, data);
+
+      // Apply photo change: upload new, delete existing, or leave alone
+      if (photo) {
+        try {
+          await assetService.uploadPhoto(businessId, id, photo.uri, photo.name, photo.mimeType);
+        } catch {
+          Alert.alert("Note", "Asset saved but photo upload failed. You can retry from the edit screen.");
+        }
+      } else if (photo === null) {
+        try {
+          await assetService.deletePhoto(businessId, id);
+        } catch {
+          Alert.alert("Note", "Asset saved but photo removal failed. You can retry from the edit screen.");
+        }
+      }
 
       // Upload manual PDF if a new file was selected
       if (file) {

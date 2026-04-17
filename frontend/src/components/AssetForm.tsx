@@ -2,6 +2,8 @@ import { useColors } from "@/src/styles/globalColors";
 import { CreateAssetDTO } from "@/src/types/asset";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as DocumentPicker from "expo-document-picker";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   Alert,
@@ -25,9 +27,23 @@ export interface SelectedFile {
   name: string;
 }
 
+export interface SelectedPhoto {
+  uri: string;
+  name: string;
+  mimeType?: string;
+}
+
+/**
+ * Photo change intent passed back from the form.
+ * - undefined: no change
+ * - null: remove existing photo
+ * - SelectedPhoto: upload new photo
+ */
+export type PhotoChange = SelectedPhoto | null | undefined;
+
 interface AssetFormProps {
-  initialValues?: Partial<CreateAssetDTO>;
-  onSubmit: (data: CreateAssetDTO, file?: SelectedFile) => Promise<void>;
+  initialValues?: Partial<CreateAssetDTO> & { photoUrl?: string };
+  onSubmit: (data: CreateAssetDTO, file?: SelectedFile, photo?: PhotoChange) => Promise<void>;
   submitLabel: string;
   existingManual?: boolean;
   onDeleteManual?: () => void;
@@ -59,8 +75,14 @@ const AssetForm = ({ initialValues, onSubmit, submitLabel, existingManual, onDel
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [nfcTagId, setNfcTagId] = useState(initialValues?.nfcTagId ?? "");
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const existingPhotoUrl = initialValues?.photoUrl;
+  const hasDisplayablePhoto =
+    !!selectedPhoto || (!!existingPhotoUrl && !photoRemoved);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -107,6 +129,67 @@ const AssetForm = ({ initialValues, onSubmit, submitLabel, existingManual, onDel
     }
   };
 
+  const applyPickerResult = (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets.length) return;
+    const asset = result.assets[0];
+    const ext = asset.uri.split(".").pop() || "jpg";
+    setSelectedPhoto({
+      uri: asset.uri,
+      name: `asset-photo.${ext}`,
+      mimeType: asset.mimeType || "image/jpeg",
+    });
+    setPhotoRemoved(false);
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow camera access to take a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    applyPickerResult(result);
+  };
+
+  const handleChooseFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow photo library access to choose a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    applyPickerResult(result);
+  };
+
+  const handlePickPhoto = () => {
+    Keyboard.dismiss();
+    Alert.alert("Asset Photo", "Choose how to add a photo", [
+      { text: "Take Photo", onPress: handleTakePhoto },
+      { text: "Choose from Library", onPress: handleChooseFromLibrary },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const handleRemovePhoto = () => {
+    if (selectedPhoto) {
+      setSelectedPhoto(null);
+      return;
+    }
+    if (existingPhotoUrl && !photoRemoved) {
+      setPhotoRemoved(true);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validate()) return;
 
@@ -120,7 +203,12 @@ const AssetForm = ({ initialValues, onSubmit, submitLabel, existingManual, onDel
         purchaseDate: formatDate(purchaseDate),
         ...(nfcTagId.trim() && { nfcTagId: nfcTagId.trim() }),
       };
-      await onSubmit(data, selectedFile ?? undefined);
+      const photoChange: PhotoChange = selectedPhoto
+        ? selectedPhoto
+        : photoRemoved
+        ? null
+        : undefined;
+      await onSubmit(data, selectedFile ?? undefined, photoChange);
     } catch (err) {
       Alert.alert(
         "Error",
@@ -237,6 +325,84 @@ const AssetForm = ({ initialValues, onSubmit, submitLabel, existingManual, onDel
         keyboardDismissMode="interactive"
       >
         <Pressable onPress={Keyboard.dismiss}>
+          <View style={sectionStyle}>
+            <Text style={sectionTitle}>Photo</Text>
+            <Card variant="elevated" padding="none">
+              <View style={cardContent}>
+                <View style={{ alignItems: "center" }}>
+                  <Pressable onPress={handlePickPhoto}>
+                    {hasDisplayablePhoto ? (
+                      <Image
+                        source={{ uri: selectedPhoto?.uri ?? existingPhotoUrl }}
+                        style={{
+                          width: 140,
+                          height: 140,
+                          borderRadius: 16,
+                          backgroundColor: colors.backgroundPrimary,
+                        }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 140,
+                          height: 140,
+                          borderRadius: 16,
+                          backgroundColor: colors.brandLight,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          borderWidth: 1.5,
+                          borderColor: colors.border,
+                          borderStyle: "dashed",
+                        }}
+                      >
+                        <Icon
+                          name="photo-camera"
+                          iosName="camera.fill"
+                          androidName="photo-camera"
+                          size={36}
+                          color={colors.brandPrimary}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                            marginTop: 8,
+                            fontWeight: "500",
+                          }}
+                        >
+                          Add a photo
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
+                <View style={{ marginTop: 14, gap: 10 }}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    icon="photo-camera"
+                    iosIcon="camera.fill"
+                    androidIcon="photo-camera"
+                    onPress={handlePickPhoto}
+                  >
+                    {hasDisplayablePhoto ? "Change Photo" : "Add Photo"}
+                  </Button>
+                  {hasDisplayablePhoto && (
+                    <Button
+                      variant="ghost"
+                      status="error"
+                      fullWidth
+                      onPress={handleRemovePhoto}
+                    >
+                      Remove Photo
+                    </Button>
+                  )}
+                </View>
+              </View>
+            </Card>
+          </View>
+
           <View style={sectionStyle}>
             <Text style={sectionTitle}>Equipment Info</Text>
             <Card variant="elevated" padding="none">
