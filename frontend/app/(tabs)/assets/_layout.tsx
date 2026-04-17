@@ -9,12 +9,21 @@ function BackToAssets() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  // If there's a normal back destination, let the default header handle it
-  if (navigation.canGoBack()) return undefined;
+  const handlePress = () => {
+    if (navigation.canGoBack()) {
+      router.back();
+    } else {
+      // No back stack (e.g. opened via deep link or NFC tap) — go to assets list
+      router.replace("/assets");
+    }
+  };
 
-  // No back stack (e.g. opened via deep link or cross-tab push) — show manual back button
   return (
-    <TouchableOpacity onPress={() => router.replace("/assets")} hitSlop={8}>
+    <TouchableOpacity
+      onPress={handlePress}
+      hitSlop={8}
+      style={{ minWidth: 36, minHeight: 36, alignItems: "center", justifyContent: "center" }}
+    >
       <Icon
         name="arrow-back"
         iosName="chevron.left"
