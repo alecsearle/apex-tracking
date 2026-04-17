@@ -54,5 +54,30 @@ export function useSOP(id: string) {
     refetch();
   }, [refetch]);
 
-  return { sop, loading, error, refetch };
+  const updateSop = useCallback(
+    async (updates: { title?: string; content?: string }) => {
+      if (!businessId) return null;
+      try {
+        const updated = await sopService.update(businessId, id, updates);
+        setSop(updated);
+        return updated;
+      } catch (e: any) {
+        setError(e.message || "Failed to update SOP");
+        return null;
+      }
+    },
+    [businessId, id]
+  );
+
+  const deleteSop = useCallback(async () => {
+    if (!businessId) return;
+    try {
+      await sopService.delete(businessId, id);
+      setSop(null);
+    } catch (e: any) {
+      setError(e.message || "Failed to delete SOP");
+    }
+  }, [businessId, id]);
+
+  return { sop, loading, error, refetch, updateSop, deleteSop };
 }

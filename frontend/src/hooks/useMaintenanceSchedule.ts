@@ -27,5 +27,30 @@ export function useMaintenanceSchedule(id: string) {
     refetch();
   }, [refetch]);
 
-  return { schedule, loading, error, refetch };
+  const updateSchedule = useCallback(
+    async (updates: { title?: string; description?: string; active?: boolean; intervalHours?: number; intervalDays?: number }) => {
+      if (!businessId) return null;
+      try {
+        const updated = await maintenanceService.updateSchedule(businessId, id, updates);
+        setSchedule(updated);
+        return updated;
+      } catch (e: any) {
+        setError(e.message || "Failed to update schedule");
+        return null;
+      }
+    },
+    [businessId, id]
+  );
+
+  const deleteSchedule = useCallback(async () => {
+    if (!businessId) return;
+    try {
+      await maintenanceService.deleteSchedule(businessId, id);
+      setSchedule(null);
+    } catch (e: any) {
+      setError(e.message || "Failed to delete schedule");
+    }
+  }, [businessId, id]);
+
+  return { schedule, loading, error, refetch, updateSchedule, deleteSchedule };
 }

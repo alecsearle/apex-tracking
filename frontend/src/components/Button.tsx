@@ -4,7 +4,7 @@ import { Text, TextStyle, TouchableOpacity, ViewStyle } from "react-native";
 import Icon from "./Icon";
 
 interface ButtonProps {
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   alignment?: "left" | "center" | "right";
   status?: "active" | "warning" | "error";
   onPress: () => void;
@@ -67,6 +67,8 @@ const Button = ({
         };
       case "ghost":
         return { bg: "transparent", text: colors.brandPrimary };
+      case "danger":
+        return { bg: colors.statusErrorBg, text: colors.statusErrorText };
       default:
         return { bg: colors.brandPrimary, text: "#FFFFFF" };
     }

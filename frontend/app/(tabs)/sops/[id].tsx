@@ -1,9 +1,11 @@
+import Button from "@/src/components/Button";
 import Card from "@/src/components/Card";
 import Icon from "@/src/components/Icon";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useSOP } from "@/src/hooks/useSOPs";
 import { useColors } from "@/src/styles/globalColors";
-import { useLocalSearchParams } from "expo-router";
-import { ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Alert, ScrollView, Text, TextStyle, View, ViewStyle } from "react-native";
 
 /**
  * Simple markdown-ish renderer for SOP content.
@@ -109,7 +111,25 @@ function SimpleMarkdown({ content }: { content: string }) {
 export default function SOPDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { sop } = useSOP(id);
+  const router = useRouter();
+  const { session, role } = useAuth();
+  const { sop, deleteSop } = useSOP(id);
+
+  const canModify = role === "owner" || (session?.user?.id && sop?.createdBy === session.user.id);
+
+  function handleDelete() {
+    Alert.alert("Delete SOP", `Are you sure you want to delete "${sop?.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteSop();
+          router.back();
+        },
+      },
+    ]);
+  }
 
   if (!sop) {
     return (
@@ -158,6 +178,32 @@ export default function SOPDetailScreen() {
         <Card variant="elevated" padding="large">
           <SimpleMarkdown content={sop.content} />
         </Card>
+
+        {/* Edit / Delete */}
+        {canModify && (
+          <View style={{ gap: 12 }}>
+            <Button
+              variant="primary"
+              fullWidth
+              icon="edit"
+              iosIcon="pencil"
+              androidIcon="edit"
+              onPress={() => router.push(`/sops/edit/${id}`)}
+            >
+              Edit SOP
+            </Button>
+            <Button
+              variant="danger"
+              fullWidth
+              icon="delete"
+              iosIcon="trash"
+              androidIcon="delete"
+              onPress={handleDelete}
+            >
+              Delete SOP
+            </Button>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

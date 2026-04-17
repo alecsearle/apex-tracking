@@ -24,6 +24,7 @@ export default function SOPsLayout() {
       <Stack.Screen name="index" options={{ title: "SOPs" }} />
       <Stack.Screen name="[id]" options={{ title: "SOP Detail" }} />
       <Stack.Screen name="new" options={{ title: "New SOP" }} />
+      <Stack.Screen name="edit/[id]" options={{ title: "Edit SOP" }} />
     </Stack>
   );
 }
