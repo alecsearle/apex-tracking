@@ -36,8 +36,12 @@ export default function NewAssetScreen() {
       }
     }
 
+    // Use replace so the "new" screen is never left on the Assets stack —
+    // needed because "Add Asset" can be launched from the Home tab, in which
+    // case router.back() would return to Home while leaving this form on top
+    // of the Assets stack.
     Alert.alert("Asset Created", `"${data.name}" has been added.`, [
-      { text: "OK", onPress: () => router.back() },
+      { text: "OK", onPress: () => router.replace("/assets") },
     ]);
   };
 
