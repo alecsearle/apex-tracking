@@ -213,4 +213,4 @@ Test coverage includes: auth middleware, role-based access control, business iso
 
 The backend is fully built and integrated. The frontend is wired to the real API. See `PROGRESS.md` for what's complete and what's remaining.
 
-![alt text](image.png)
+<img src="image.png" alt="alt text" width="300" />
