@@ -19,38 +19,41 @@ A mobile app for small businesses to track equipment assets, usage sessions, mai
 ## Tech Stack
 
 ### Frontend
-| | |
-|---|---|
-| Framework | React Native + Expo SDK 54 |
-| Language | TypeScript (strict) |
-| Navigation | Expo Router (file-based) |
-| Auth | `@supabase/supabase-js` |
-| Styling | Inline styles + `useColors()` theme hook (light/dark) |
-| File handling | `expo-document-picker`, `expo-image-picker` |
-| HTTP | Native `fetch` via typed `apiRequest<T>()` wrapper |
+
+|               |                                                       |
+| ------------- | ----------------------------------------------------- |
+| Framework     | React Native + Expo SDK 54                            |
+| Language      | TypeScript (strict)                                   |
+| Navigation    | Expo Router (file-based)                              |
+| Auth          | `@supabase/supabase-js`                               |
+| Styling       | Inline styles + `useColors()` theme hook (light/dark) |
+| File handling | `expo-document-picker`, `expo-image-picker`           |
+| HTTP          | Native `fetch` via typed `apiRequest<T>()` wrapper    |
 
 ### Backend
-| | |
-|---|---|
-| Runtime | Node.js 20+ |
-| Framework | Express v5 |
-| Language | TypeScript (strict) |
-| Auth | Supabase JWT verification middleware |
-| ORM | Prisma |
-| Validation | Zod (one schema per request shape) |
-| File uploads | Multer → Supabase Storage |
-| Logging | pino |
-| Testing | Jest + Supertest |
+
+|              |                                      |
+| ------------ | ------------------------------------ |
+| Runtime      | Node.js 20+                          |
+| Framework    | Express v5                           |
+| Language     | TypeScript (strict)                  |
+| Auth         | Supabase JWT verification middleware |
+| ORM          | Prisma                               |
+| Validation   | Zod (one schema per request shape)   |
+| File uploads | Multer → Supabase Storage            |
+| Logging      | pino                                 |
+| Testing      | Jest + Supertest                     |
 
 ### Infrastructure
-| Layer | Provider |
-|---|---|
-| Database | Supabase (PostgreSQL 15) |
-| Auth | Supabase Auth (email/password + Google OAuth) |
-| File storage | Supabase Storage (3 buckets) |
-| Backend hosting | Render |
-| Mobile dev | Expo Go |
-| Mobile builds | EAS Build → TestFlight / Play Store |
+
+| Layer           | Provider                                      |
+| --------------- | --------------------------------------------- |
+| Database        | Supabase (PostgreSQL 15)                      |
+| Auth            | Supabase Auth (email/password + Google OAuth) |
+| File storage    | Supabase Storage (3 buckets)                  |
+| Backend hosting | Render                                        |
+| Mobile dev      | Expo Go                                       |
+| Mobile builds   | EAS Build → TestFlight / Play Store           |
 
 ---
 
@@ -95,6 +98,7 @@ apex-tracking/
 ## Local Setup
 
 ### Prerequisites
+
 - Node.js 20+
 - Expo CLI (`npm install -g expo-cli`)
 - A Supabase project (free tier works)
@@ -141,6 +145,7 @@ npm run db:reset      # Reset and re-seed the database
 Variables are never hardcoded. Each workspace has a `.env.example` documenting all required keys.
 
 **`frontend/.env`**
+
 ```
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
@@ -148,6 +153,7 @@ EXPO_PUBLIC_API_BASE_URL=
 ```
 
 **`backend/.env`**
+
 ```
 PORT=
 NODE_ENV=
@@ -166,6 +172,7 @@ SUPABASE_STORAGE_BUCKET_MAINTENANCE=
 All routes are prefixed with `/api`. Business-scoped routes use `/api/businesses/:businessId/...`.
 
 Key route groups:
+
 - `POST /api/auth/sync` — Sync Supabase user into app database
 - `/api/businesses` — Create/join a business, manage members
 - `/api/businesses/:id/assets` — Asset CRUD, photo and manual uploads
@@ -205,3 +212,5 @@ Test coverage includes: auth middleware, role-based access control, business iso
 ## Current Status
 
 The backend is fully built and integrated. The frontend is wired to the real API. See `PROGRESS.md` for what's complete and what's remaining.
+
+![alt text](image.png)
